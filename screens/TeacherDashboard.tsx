@@ -1,29 +1,86 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { UserProfile, Connection } from '../types';
+import { UserProfile, Connection, LearningProgress, SharedMaterial, Assignment } from '../types';
 import { CheckIcon, XMarkIcon, BriefcaseIcon, UsersIcon, BellIcon, BookIcon } from '../constants';
-import { getConnectionsForTeacher, updateConnectionStatus } from '../services/firebaseService';
+import { getConnectionsForTeacher, updateConnectionStatus, getUserProfile, getMaterialsForTeacher, getAssignmentsForStudent } from '../services/firebaseService';
+import StudentDetailModal from '../components/teacher/StudentDetailModal';
 
 interface TeacherDashboardProps {
   userProfile: UserProfile;
 }
 
+// Helper function to calculate progress
+const calculateOverallProgress = (progress?: LearningProgress): number => {
+    if (!progress || !progress.totalAssignments || !progress.studyGoal) return 0;
+
+    const assignmentProgress = (progress.completedAssignments / progress.totalAssignments) * 100;
+    const quizProgress = progress.averageQuizScore; // Assumed to be a percentage already
+    const studyProgress = (progress.studyHours / progress.studyGoal) * 100;
+
+    const overall = (assignmentProgress + quizProgress + studyProgress) / 3;
+    
+    return Math.min(100, Math.round(overall)); // Cap at 100
+};
+
+
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userProfile }) => {
     const [connections, setConnections] = useState<Connection[]>([]);
+    const [studentProfiles, setStudentProfiles] = useState<Record<string, UserProfile>>({});
+    const [studentAssignments, setStudentAssignments] = useState<Record<string, Assignment[]>>({});
     const [loading, setLoading] = useState(true);
+    const [sharedMaterials, setSharedMaterials] = useState<SharedMaterial[]>([]);
+    const [selectedStudent, setSelectedStudent] = useState<UserProfile | null>(null);
+
 
     useEffect(() => {
         if (userProfile?.uid) {
             setLoading(true);
-            const unsubscribe = getConnectionsForTeacher(userProfile.uid, (fetchedConnections) => {
+            const unsubscribeConnections = getConnectionsForTeacher(userProfile.uid, (fetchedConnections) => {
                 setConnections(fetchedConnections);
                 setLoading(false);
             });
-            return () => unsubscribe();
+            const unsubscribeMaterials = getMaterialsForTeacher(userProfile.uid, setSharedMaterials);
+            return () => {
+                unsubscribeConnections();
+                unsubscribeMaterials();
+            };
         }
     }, [userProfile?.uid]);
 
     const pendingRequests = useMemo(() => connections.filter(c => c.status === 'pending'), [connections]);
     const acceptedStudents = useMemo(() => connections.filter(c => c.status === 'accepted'), [connections]);
+
+    useEffect(() => {
+        const studentIds = acceptedStudents.map(c => c.studentId);
+        const unsubscribers: (() => void)[] = [];
+
+        const fetchStudentData = async () => {
+            const profilesToFetch = studentIds.filter(id => !studentProfiles[id]);
+            if (profilesToFetch.length > 0) {
+                const profilePromises = profilesToFetch.map(id => getUserProfile(id));
+                const profiles = await Promise.all(profilePromises);
+                const newProfiles: Record<string, UserProfile> = {};
+                profiles.forEach(p => p && (newProfiles[p.uid] = p));
+                setStudentProfiles(prev => ({ ...prev, ...newProfiles }));
+            }
+            
+            // Subscribe to assignments for each student
+            studentIds.forEach(studentId => {
+                const unsubscribe = getAssignmentsForStudent(studentId, (assignments) => {
+                    setStudentAssignments(prev => ({...prev, [studentId]: assignments.filter(a => a.teacherId === userProfile.uid)}));
+                });
+                unsubscribers.push(unsubscribe);
+            });
+        };
+
+        if (acceptedStudents.length > 0) {
+            fetchStudentData();
+        }
+
+        return () => {
+            unsubscribers.forEach(unsub => unsub());
+        };
+    }, [acceptedStudents, userProfile.uid]);
+
 
     const handleConnectionUpdate = async (connectionId: string, status: 'accepted' | 'rejected') => {
         try {
@@ -52,23 +109,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userProfile 
             <StatCard icon={<BriefcaseIcon className="w-7 h-7" />} label="Classes" value={2} color="text-sky-500" bgColor="bg-sky-100 dark:bg-sky-900/30" />
             <StatCard icon={<BookIcon className="w-7 h-7" />} label="Subjects" value={userProfile.subjects.length} color="text-emerald-500" bgColor="bg-emerald-100 dark:bg-emerald-900/30" />
         </div>
-
-        <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <QuickActionCard label="Create Assignment" onClick={() => alert("Feature coming soon!")} />
-                <QuickActionCard label="Share Material" onClick={() => alert("Feature coming soon!")} />
-                <QuickActionCard label="Schedule Class" onClick={() => alert("Feature coming soon!")} />
-                <QuickActionCard label="View Reports" onClick={() => alert("Feature coming soon!")} />
-            </div>
-        </div>
       
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold mb-4">Connection Requests ({pendingRequests.length})</h2>
                 {loading ? <p>Loading requests...</p> : 
                 pendingRequests.length > 0 ? (
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                         {pendingRequests.map(req => (
                             <div key={req.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div className="flex items-center space-x-3">
@@ -86,25 +133,61 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userProfile 
                 }
             </div>
 
-            <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <div className="lg:col-span-2 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold mb-4">My Students ({acceptedStudents.length})</h2>
                 {loading ? <p>Loading students...</p> : 
                 acceptedStudents.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
-                        {acceptedStudents.map(student => (
-                            <div key={student.id} className="flex items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <img src={student.studentProfileImageUrl || `https://i.pravatar.cc/150?u=${student.studentId}`} alt={student.studentName} className="w-10 h-10 rounded-full" />
-                                <div className="ml-3">
-                                    <p className="font-semibold">{student.studentName}</p>
-                                    <button className="text-xs text-purple-500 hover:underline">View Progress</button>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2">
+                        {acceptedStudents.map(studentConnection => {
+                            const studentProfile = studentProfiles[studentConnection.studentId];
+                            if (!studentProfile) return <div key={studentConnection.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg animate-pulse h-28"></div>;
+                            const progress = calculateOverallProgress(studentProfile.learningProgress);
+                            return (
+                                <button key={studentConnection.id} onClick={() => setSelectedStudent(studentProfile)} className="text-left flex flex-col p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/80 transition-colors">
+                                    <div className="flex items-center">
+                                        <img src={studentProfile.profileImageUrl || `https://i.pravatar.cc/150?u=${studentProfile.uid}`} alt={studentProfile.name} className="w-10 h-10 rounded-full" />
+                                        <div className="ml-3 flex-1">
+                                            <p className="font-semibold">{studentProfile.name}</p>
+                                            <span className="text-xs text-purple-500 hover:underline">View Details</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3">
+                                        <div className="flex justify-between mb-1">
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Overall Progress</span>
+                                            <span className="text-xs font-medium text-purple-600 dark:text-purple-400">{progress}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                            <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 ) : <p className="text-gray-500 dark:text-gray-400">You haven't accepted any students yet.</p>
                 }
             </div>
         </div>
+         <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold mb-4">Recently Shared Materials</h2>
+            {sharedMaterials.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {sharedMaterials.map(material => (
+                        <div key={material.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                            <p className="font-semibold truncate pr-4">{material.title}</p>
+                            <span className="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-600 uppercase font-semibold">{material.type}</span>
+                        </div>
+                    ))}
+                </div>
+            ) : <p className="text-gray-500 dark:text-gray-400">You haven't shared any materials yet.</p>}
+        </div>
+        {selectedStudent && (
+            <StudentDetailModal 
+                student={selectedStudent} 
+                assignments={studentAssignments[selectedStudent.uid] || []}
+                onClose={() => setSelectedStudent(null)}
+            />
+        )}
     </div>
   );
 };
@@ -119,10 +202,4 @@ const StatCard = ({ icon, label, value, color, bgColor }: { icon: React.ReactNod
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
         </div>
     </div>
-);
-
-const QuickActionCard = ({ label, onClick }: { label: string, onClick: () => void }) => (
-    <button onClick={onClick} className="bg-gray-100 dark:bg-gray-700/60 p-4 rounded-2xl text-center transition-all duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-gray-700 transform hover:-translate-y-1 active:scale-95 border border-gray-200 dark:border-gray-700/60">
-        <p className="font-semibold text-gray-800 dark:text-white">{label}</p>
-    </button>
 );

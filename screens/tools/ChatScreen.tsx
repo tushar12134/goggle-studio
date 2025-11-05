@@ -1,17 +1,15 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatSession, FirebaseChatMessage, Teacher } from '../../types';
+import { ChatSession, FirebaseChatMessage, UserProfile } from '../../types';
 import { auth, getChatMessages, sendChatMessage, uploadFileToChat } from '../../services/firebaseService';
 import { VideoIcon, PhoneIcon } from '../../constants';
 
 interface ChatScreenProps {
     session: ChatSession;
-    teacher: Teacher;
+    otherUser: UserProfile;
     onBack: () => void;
 }
 
-export const ChatScreen: React.FC<ChatScreenProps> = ({ session, teacher, onBack }) => {
+export const ChatScreen: React.FC<ChatScreenProps> = ({ session, otherUser, onBack }) => {
     const [messages, setMessages] = useState<FirebaseChatMessage[]>([]);
     const [input, setInput] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,10 +48,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ session, teacher, onBack
                 <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 mr-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
                 </button>
-                <img src={teacher.avatar} alt={teacher.name} className="w-10 h-10 rounded-full object-cover" />
+                <img src={otherUser.profileImageUrl || `https://i.pravatar.cc/150?u=${otherUser.uid}`} alt={otherUser.name} className="w-10 h-10 rounded-full object-cover" />
                 <div className="ml-3">
-                    <h2 className="font-bold text-gray-900 dark:text-white">{teacher.name}</h2>
-                    <p className={`text-xs ${teacher.isOnline ? 'text-green-500' : 'text-gray-500'}`}>{teacher.isOnline ? 'Online' : 'Offline'}</p>
+                    <h2 className="font-bold text-gray-900 dark:text-white">{otherUser.name}</h2>
+                    <p className={`text-xs text-gray-500`}>Offline</p>
                 </div>
                 <div className="flex items-center space-x-2 ml-auto">
                     <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"><PhoneIcon className="w-6 h-6" /></button>

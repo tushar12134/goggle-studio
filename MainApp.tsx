@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
@@ -41,13 +40,13 @@ const MainApp: React.FC<MainAppProps> = ({ userProfile, theme, setTheme }) => {
       case Screen.AITutor:
         return <AITutorScreen />;
       case Screen.Tools:
-        return <ToolsScreen initialTool={initialTool} onToolExited={() => setInitialTool(null)} />;
+        return <ToolsScreen userProfile={userProfile} initialTool={initialTool} onToolExited={() => setInitialTool(null)} />;
       case Screen.Report:
-        return <ReportScreen />;
+        return <ReportScreen userProfile={userProfile} />;
       case Screen.Profile:
         return <ProfileScreen />;
       case Screen.Services:
-        return <ServicesScreen />;
+        return <ServicesScreen userProfile={userProfile} />;
       default:
         return <StudentDashboard userProfile={userProfile} setActiveScreen={setActiveScreen} navigateToTool={navigateToTool} />;
     }
@@ -67,18 +66,18 @@ const MainApp: React.FC<MainAppProps> = ({ userProfile, theme, setTheme }) => {
         onNotificationClick={() => alert('Notifications will be shown here!')}
         onSettingsClick={() => setIsSettingsModalOpen(true)}
         onProfileClick={() => setActiveScreen(Screen.Profile)}
+        theme={theme}
+        setTheme={setTheme}
       />
       <main key={activeScreen} className="flex-1 overflow-y-auto p-4 scrollbar-hide animate-fade-in">
         {renderScreen()}
       </main>
-      <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
+      <BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} userProfile={userProfile} />
 
       {isSettingsModalOpen && (
         <SettingsModal 
             isOpen={isSettingsModalOpen} 
             onClose={() => setIsSettingsModalOpen(false)} 
-            theme={theme} 
-            setTheme={setTheme} 
         />
       )}
       <FloatingChatbot />

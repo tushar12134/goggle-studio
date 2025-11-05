@@ -1,30 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     BriefcaseIcon, 
     UsersIcon, 
     FolderIcon, 
     RocketLaunchIcon, 
-    // FIX: Replaced 'ClipboardDocumentListIcon' with the correctly named 'ClipboardDocumentIcon' to resolve an import error.
     ClipboardDocumentIcon,
     ChatBubbleLeftRightIcon
 } from '../constants';
-import { Assignment, SharedMaterial, ClassroomInfo, ClassroomQuiz } from '../types';
+import { Assignment, SharedMaterial, ClassroomInfo, ClassroomQuiz, UserProfile, Connection } from '../types';
+import { auth, getAssignmentsForStudent, getConnectionsForStudent, getMaterialsForStudent } from '../services/firebaseService';
 
 // --- MOCK DATA ---
-const mockHasTeacherConnection = true; // Set to false to see the "zero state"
-
-const mockAssignments: Assignment[] = [
-    { id: '1', title: 'Quantum Mechanics Problem Set 1', subject: 'Physics', dueDate: 'Oct 28, 2024', status: 'Pending' },
-    { id: '2', title: 'Essay: The Elizabethan Era', subject: 'Literature', dueDate: 'Oct 25, 2024', status: 'Submitted' },
-    { id: '3', title: 'Calculus Derivatives Worksheet', subject: 'Mathematics', dueDate: 'Oct 22, 2024', status: 'Graded' },
-];
-
-const mockMaterials: SharedMaterial[] = [
-    { id: '1', title: 'Lecture Notes - Week 5', type: 'file', description: 'PDF covering Schrödinger\'s equation.' },
-    { id: '2', title: 'Khan Academy: Integrals', type: 'link', description: 'Helpful video series on integration.' },
-    { id: '3', title: 'Historical Maps Archive', type: 'link', description: 'Primary source maps for your essay.' },
-];
-
 const mockClasses: ClassroomInfo[] = [
     { id: '1', teacherName: 'Dr. Jane Doe', subject: 'Physics', nextSession: 'Tomorrow at 10:00 AM' },
     { id: '2', teacherName: 'Prof. Emily White', subject: 'Literature', nextSession: 'Friday at 2:00 PM' },
@@ -39,13 +25,17 @@ const mockQuizzes: ClassroomQuiz[] = [
 
 type ServiceView = 'dashboard' | 'classroom' | 'tutoring' | 'library' | 'guidance';
 
-export const ServicesScreen: React.FC = () => {
+interface ServicesScreenProps {
+    userProfile: UserProfile;
+}
+
+export const ServicesScreen: React.FC<ServicesScreenProps> = ({ userProfile }) => {
     const [view, setView] = useState<ServiceView>('dashboard');
 
     const renderContent = () => {
         switch(view) {
             case 'classroom':
-                return <ClassroomView onBack={() => setView('dashboard')} />;
+                return <ClassroomView onBack={() => setView('dashboard')} userProfile={userProfile} />;
             // Add cases for other services here when they are built
             // case 'tutoring':
             //     return <TutoringView onBack={() => setView('dashboard')} />;
@@ -97,11 +87,42 @@ const ServiceCard: React.FC<{ title: string, description: string, icon: React.Re
 // --- Classroom View ---
 type ClassroomTab = 'assignments' | 'materials' | 'classes' | 'quizzes';
 
-const ClassroomView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+interface ClassroomViewProps {
+    onBack: () => void;
+    userProfile: UserProfile;
+}
+
+const ClassroomView: React.FC<ClassroomViewProps> = ({ onBack, userProfile }) => {
     const [activeTab, setActiveTab] = useState<ClassroomTab>('assignments');
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [materials, setMaterials] = useState<SharedMaterial[]>([]);
+    const [connections, setConnections] = useState<Connection[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if(userProfile.uid) {
+            setLoading(true);
+            const unsubConnections = getConnectionsForStudent(userProfile.uid, (conns) => {
+                setConnections(conns.filter(c => c.status === 'accepted'));
+                setLoading(false);
+            });
+            const unsubAssignments = getAssignmentsForStudent(userProfile.uid, setAssignments);
+            const unsubMaterials = getMaterialsForStudent(userProfile.uid, setMaterials);
+
+            return () => {
+                unsubConnections();
+                unsubAssignments();
+                unsubMaterials();
+            };
+        }
+    }, [userProfile.uid]);
 
     const renderTabContent = () => {
-        if (!mockHasTeacherConnection) {
+        if (loading) {
+            return <p className="text-center text-gray-500">Loading classroom data...</p>;
+        }
+        
+        if (connections.length === 0) {
             return (
                 <div className="text-center py-16">
                     <ChatBubbleLeftRightIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -114,9 +135,11 @@ const ClassroomView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
         switch (activeTab) {
             case 'assignments':
-                return <div className="space-y-3">{mockAssignments.map(a => <AssignmentCard key={a.id} assignment={a} />)}</div>;
+                if (assignments.length === 0) return <p className="text-center text-gray-500">No assignments found.</p>;
+                return <div className="space-y-3">{assignments.map(a => <AssignmentCard key={a.id} assignment={a} />)}</div>;
             case 'materials':
-                return <div className="space-y-3">{mockMaterials.map(m => <MaterialCard key={m.id} material={m} />)}</div>;
+                if (materials.length === 0) return <p className="text-center text-gray-500">No materials shared by your teachers yet.</p>;
+                return <div className="space-y-3">{materials.map(m => <MaterialCard key={m.id} material={m} />)}</div>;
             case 'classes':
                 return <div className="space-y-3">{mockClasses.map(c => <ClassCard key={c.id} classInfo={c} />)}</div>;
             case 'quizzes':
@@ -159,7 +182,7 @@ const TabButton: React.FC<{name: string, activeTab: string, onClick: () => void}
 // --- Classroom Item Cards ---
 const AssignmentCard: React.FC<{ assignment: Assignment }> = ({ assignment }) => {
     const statusStyles = {
-        Pending: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+        Assigned: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
         Submitted: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
         Graded: 'bg-green-500/10 text-green-600 dark:text-green-400',
     };
@@ -168,7 +191,7 @@ const AssignmentCard: React.FC<{ assignment: Assignment }> = ({ assignment }) =>
             <div className="flex justify-between items-start">
                 <div>
                     <p className="font-bold">{assignment.title}</p>
-                    <p className="text-xs text-gray-500">{assignment.subject} &bull; Due: {assignment.dueDate}</p>
+                    <p className="text-xs text-gray-500">{assignment.subject} &bull; Due: {new Date(assignment.dueDate).toLocaleDateString()}</p>
                 </div>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[assignment.status]}`}>{assignment.status}</span>
             </div>
@@ -177,12 +200,16 @@ const AssignmentCard: React.FC<{ assignment: Assignment }> = ({ assignment }) =>
 };
 const MaterialCard: React.FC<{ material: SharedMaterial }> = ({ material }) => (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center space-x-3">
-        <div className="w-8 h-8 flex-shrink-0 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">📄</div>
-        <div>
-            <p className="font-bold">{material.title}</p>
-            <p className="text-xs text-gray-500">{material.description}</p>
+        <div className="w-10 h-10 flex-shrink-0 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-xl">
+            {material.type === 'file' ? '📄' : '🔗'}
         </div>
-        <a href="#" className="ml-auto text-purple-600 hover:underline text-sm font-semibold">View</a>
+        <div className="flex-1 overflow-hidden">
+            <p className="font-bold truncate" title={material.title}>{material.title}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Shared by {material.teacherName}</p>
+        </div>
+        <a href={material.url} target="_blank" rel="noopener noreferrer" className="ml-auto flex-shrink-0 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg text-sm hover:bg-purple-700 transition-colors">
+            View
+        </a>
     </div>
 );
 const ClassCard: React.FC<{ classInfo: ClassroomInfo }> = ({ classInfo }) => (

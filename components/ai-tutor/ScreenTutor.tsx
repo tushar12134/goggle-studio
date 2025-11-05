@@ -78,8 +78,21 @@ export const ScreenTutor: React.FC = () => {
         audioRefs.current.displayStream?.getTracks().forEach(track => track.stop());
         audioRefs.current.mediaStream?.getTracks().forEach(track => track.stop());
         audioRefs.current.scriptProcessor?.disconnect();
-        audioRefs.current.inputAudioContext?.close();
-        audioRefs.current.outputAudioContext?.close();
+
+        // FIX: Check if the audio context is already closed before attempting to close it again.
+        if (audioRefs.current.inputAudioContext && audioRefs.current.inputAudioContext.state !== 'closed') {
+            audioRefs.current.inputAudioContext.close();
+        }
+        if (audioRefs.current.outputAudioContext && audioRefs.current.outputAudioContext.state !== 'closed') {
+            audioRefs.current.outputAudioContext.close();
+        }
+
+        // FIX: Reset audio refs to null after closing to prevent memory leaks and redundant calls.
+        audioRefs.current.inputAudioContext = null;
+        audioRefs.current.outputAudioContext = null;
+        audioRefs.current.scriptProcessor = null;
+        audioRefs.current.mediaStream = null;
+        audioRefs.current.displayStream = null;
 
         if (videoRef.current) videoRef.current.srcObject = null;
         setIsSharing(false);
@@ -110,7 +123,7 @@ export const ScreenTutor: React.FC = () => {
             let nextStartTime = 0;
             const sources = new Set<AudioBufferSourceNode>();
 
-            sessionPromiseRef.current = ai.live.connect({
+            const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                 callbacks: {
                     onopen: async () => {
@@ -121,20 +134,20 @@ export const ScreenTutor: React.FC = () => {
                             audioRefs.current.scriptProcessor = audioRefs.current.inputAudioContext!.createScriptProcessor(4096, 1, 1);
                             audioRefs.current.scriptProcessor.onaudioprocess = (event) => {
                                 const inputData = event.inputBuffer.getChannelData(0);
+                                // BUG FIX: Implement robust audio encoding. Clamp values to prevent clipping/data corruption from loud input.
+                                // Use 32767 for scaling to stay within Int16 range.
                                 const pcmBlob: GenAI_Blob = {
-                                    data: encode(new Uint8Array(new Int16Array(inputData.map(d => d * 32768)).buffer)),
+                                    data: encode(new Uint8Array(new Int16Array(inputData.map(d => Math.max(-1.0, Math.min(1.0, d)) * 32767)).buffer)),
                                     mimeType: 'audio/pcm;rate=16000',
                                 };
-                                 if (sessionPromiseRef.current) {
-                                    sessionPromiseRef.current.then(session => session.sendRealtimeInput({ media: pcmBlob }));
-                                }
+                                sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
                             };
                             source.connect(audioRefs.current.scriptProcessor);
                             audioRefs.current.scriptProcessor.connect(audioRefs.current.inputAudioContext!.destination);
 
                             // Start streaming video frames
                             frameIntervalRef.current = window.setInterval(() => {
-                                if (!videoRef.current || !canvasRef.current || !sessionPromiseRef.current) return;
+                                if (!videoRef.current || !canvasRef.current) return;
                                 const videoEl = videoRef.current;
                                 const canvasEl = canvasRef.current;
                                 canvasEl.width = videoEl.videoWidth;
@@ -143,7 +156,7 @@ export const ScreenTutor: React.FC = () => {
                                 canvasEl.toBlob(async (blob) => {
                                     if (blob) {
                                         const base64Data = await blobToBase64(blob);
-                                        sessionPromiseRef.current!.then((session) => {
+                                        sessionPromise.then((session) => {
                                             session.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } });
                                         });
                                     }
@@ -191,6 +204,7 @@ export const ScreenTutor: React.FC = () => {
                     systemInstruction: `You are a helpful AI tutor from Edgelearn. The user is sharing their screen. Analyze the visual information from the screen frames and the user's voice commands to provide assistance. Be concise and helpful.`
                 },
             });
+            sessionPromiseRef.current = sessionPromise;
 
         } catch (error: any) {
             console.error("Error starting screen share:", error);

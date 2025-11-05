@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth } from '../services/firebaseService';
 import { 
   createUserWithEmailAndPassword, 
@@ -8,7 +8,9 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import { UserRole } from '../types';
-import { BriefcaseIcon, GitHubIcon } from '../constants';
+import { BriefcaseIcon, GitHubIcon, QrCodeIcon, FingerPrintIcon } from '../constants';
+import { hasBiometricCredentials, signInWithBiometrics } from '../services/authService';
+import QRScannerModal from '../components/QRScannerModal';
 
 interface TeacherAuthScreenProps {
     onBack: () => void;
@@ -19,6 +21,12 @@ const TeacherAuthScreen: React.FC<TeacherAuthScreenProps> = ({ onBack }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+
+  useEffect(() => {
+    setBiometricsAvailable(hasBiometricCredentials());
+  }, []);
 
   const handleAuthAction = async () => {
     if (!email || !password) {
@@ -48,7 +56,22 @@ const TeacherAuthScreen: React.FC<TeacherAuthScreenProps> = ({ onBack }) => {
     }
   };
 
+  const handleBiometricSignIn = async () => {
+    setError('');
+    try {
+        await signInWithBiometrics();
+    } catch (err: any) {
+        setError(err.message);
+    }
+  };
+
+  const handleQRScanSuccess = (scannedEmail: string) => {
+    setEmail(scannedEmail);
+  };
+
+
   return (
+    <>
     <div className="flex flex-col items-center justify-center min-h-full p-4 sm:p-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       <div className="w-full max-w-sm space-y-6 animate-fade-in">
         <div className="text-center space-y-4">
@@ -78,10 +101,22 @@ const TeacherAuthScreen: React.FC<TeacherAuthScreenProps> = ({ onBack }) => {
                 </div>
             </div>
 
-            <button onClick={handleAuthAction} className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg text-lg hover:bg-purple-700 transition-colors">
-                {isLogin ? 'Sign In' : 'Create Account'}
-            </button>
+            <div className="flex items-center space-x-2">
+                <button onClick={() => setIsQRScannerOpen(true)} className="flex items-center justify-center p-3 w-16 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600" aria-label="Scan QR Code">
+                    <QrCodeIcon className="w-6 h-6" />
+                </button>
+                <button onClick={handleAuthAction} className="w-full bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg text-lg hover:bg-purple-700 transition-colors">
+                    {isLogin ? 'Sign In' : 'Create Account'}
+                </button>
+            </div>
             
+            {isLogin && biometricsAvailable && (
+                <button onClick={handleBiometricSignIn} className="w-full flex items-center justify-center space-x-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <FingerPrintIcon className="w-5 h-5"/>
+                    <span>Sign in with Biometrics</span>
+                </button>
+            )}
+
             <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600" /></div>
                 <div className="relative flex justify-center text-sm"><span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500">Or continue with</span></div>
@@ -103,6 +138,8 @@ const TeacherAuthScreen: React.FC<TeacherAuthScreenProps> = ({ onBack }) => {
         </button>
       </div>
     </div>
+    <QRScannerModal isOpen={isQRScannerOpen} onClose={() => setIsQRScannerOpen(false)} onScanSuccess={handleQRScanSuccess} />
+    </>
   );
 };
 export default TeacherAuthScreen;

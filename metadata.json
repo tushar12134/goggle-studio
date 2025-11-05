@@ -3,7 +3,6 @@
   "description": "An all-in-one AI-powered learning platform, featuring AI tutors, study tools, progress reports, and career guidance services to enhance learning and productivity.",
   "requestFramePermissions": [
     "camera",
-    "microphone",
-    "display-capture"
+    "microphone"
   ]
 }

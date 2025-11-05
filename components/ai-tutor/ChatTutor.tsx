@@ -1,9 +1,11 @@
+
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../../types';
-import { generateText } from '../../services/geminiService';
+import { GoogleGenAI } from "@google/genai";
 import { MicrophoneIcon } from '../../constants';
 
-// FIX: Add types for the browser's SpeechRecognition API to resolve TypeScript errors.
+// Add types for the browser's SpeechRecognition API to resolve TypeScript errors.
 interface SpeechRecognition {
   continuous: boolean;
   interimResults: boolean;
@@ -56,16 +58,51 @@ export const ChatTutor: React.FC = () => {
 
     const userMessage: ChatMessage = { role: 'user', text: input };
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
-    const systemPrompt = `You are a helpful AI tutor from Edgelearn. Your name is Edgelearn AI. Answer the following question clearly and concisely. Use markdown for formatting when appropriate.`;
-    const fullPrompt = `${systemPrompt}\n\nQuestion: ${input}`;
-    const responseText = await generateText(fullPrompt, 'gemini-2.5-pro');
+    // Add a placeholder for the model's streaming response
+    setMessages(prev => [...prev, { role: 'model', text: '' }]);
 
-    const modelMessage: ChatMessage = { role: 'model', text: responseText };
-    setMessages((prev) => [...prev, modelMessage]);
-    setIsLoading(false);
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const systemPrompt = `You are a helpful AI tutor from Edgelearn. Your name is Edgelearn AI. Answer the following question clearly and concisely. Use markdown for formatting when appropriate.`;
+        const fullPrompt = `${systemPrompt}\n\nQuestion: ${currentInput}`;
+        
+        const stream = await ai.models.generateContentStream({
+            model: 'gemini-2.5-pro',
+            contents: fullPrompt,
+            config: {
+                thinkingConfig: { thinkingBudget: 0 }
+            }
+        });
+
+        for await (const chunk of stream) {
+            const chunkText = chunk.text;
+            setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage && lastMessage.role === 'model') {
+                    lastMessage.text += chunkText;
+                }
+                return newMessages;
+            });
+        }
+
+    } catch (error) {
+        console.error("Error generating streaming response:", error);
+        setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && lastMessage.role === 'model' && lastMessage.text === '') {
+                lastMessage.text = "Sorry, I encountered an error. Please try again.";
+            }
+            return newMessages;
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleMicClick = () => {
@@ -125,7 +162,7 @@ export const ChatTutor: React.FC = () => {
             </div>
           </div>
         ))}
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.text === '' && (
           <div className="flex justify-start animate-slide-in-up">
             <div className="max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
                 <div className="flex items-center space-x-2">

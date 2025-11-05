@@ -51,11 +51,24 @@ const LANGUAGES = [
     { code: 'de-DE', name: 'German' },
     { code: 'ja-JP', name: 'Japanese' },
     { code: 'zh-CN', name: 'Mandarin' },
+    { code: 'or-IN', name: 'Odia' },
 ];
+
+const GREETINGS: { [key: string]: string } = {
+    'en-US': 'Hello! I am ready to learn with you. What topic shall we discuss?',
+    'es-ES': '¡Hola! Estoy listo para aprender contigo. ¿Qué tema discutiremos?',
+    'fr-FR': 'Bonjour! Je suis prêt à apprendre avec vous. De quel sujet discuterons-nous?',
+    'de-DE': 'Hallo! Ich bin bereit, mit dir zu lernen. Welches Thema sollen wir besprechen?',
+    'ja-JP': 'こんにちは！一緒に学ぶ準備ができました。どのトピックについて話しましょうか？',
+    'zh-CN': '你好！我准备好和你一起学习了。我们讨论什么话题？',
+    'or-IN': 'ନମସ୍କାର! ମୁଁ ତୁମ ସହିତ ଶିଖିବାକୁ ପ୍ରସ୍ତୁତ | ଆମେ କେଉଁ ବିଷୟରେ ଆଲୋଚନା କରିବା?',
+};
+
 
 export const VoiceTutor: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [transcriptionHistory, setTranscriptionHistory] = useState<Transcription[]>([]);
+    const [currentTranscription, setCurrentTranscription] = useState<{ user: string, model: string }>({ user: '', model: '' });
     const [selectedLanguage, setSelectedLanguage] = useState(LANGUAGES[0]);
     // FIX: Changed LiveSession to any because it's not exported from the library.
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
@@ -74,7 +87,7 @@ export const VoiceTutor: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    useEffect(scrollToBottom, [transcriptionHistory]);
+    useEffect(scrollToBottom, [transcriptionHistory, currentTranscription]);
 
     const stopSession = () => {
         if (sessionPromiseRef.current) {
@@ -84,9 +97,22 @@ export const VoiceTutor: React.FC = () => {
 
         audioRefs.current.mediaStream?.getTracks().forEach(track => track.stop());
         audioRefs.current.scriptProcessor?.disconnect();
-        audioRefs.current.inputAudioContext?.close();
-        audioRefs.current.outputAudioContext?.close();
+        
+        // FIX: Check if the audio context is already closed before attempting to close it again.
+        if (audioRefs.current.inputAudioContext && audioRefs.current.inputAudioContext.state !== 'closed') {
+            audioRefs.current.inputAudioContext.close();
+        }
+        if (audioRefs.current.outputAudioContext && audioRefs.current.outputAudioContext.state !== 'closed') {
+            audioRefs.current.outputAudioContext.close();
+        }
+        
         audioRefs.current.sources.forEach(source => source.stop());
+        // FIX: Clear the sources set and reset audio refs to prevent memory leaks and redundant calls.
+        audioRefs.current.sources.clear();
+        audioRefs.current.inputAudioContext = null;
+        audioRefs.current.outputAudioContext = null;
+        audioRefs.current.scriptProcessor = null;
+        audioRefs.current.mediaStream = null;
 
         setIsRecording(false);
     };
@@ -100,11 +126,11 @@ export const VoiceTutor: React.FC = () => {
 
     const startSession = async () => {
         setIsRecording(true);
+        // Provide an immediate greeting in the selected language for better UX.
         setTranscriptionHistory([]);
+        setCurrentTranscription({ user: '', model: ''});
         
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        let currentInput = "";
-        let currentOutput = "";
 
         // --- Initialize Audio ---
         // FIX: Cast window to `any` to allow for `webkitAudioContext` for broader browser support without TypeScript errors.
@@ -117,7 +143,7 @@ export const VoiceTutor: React.FC = () => {
         outputNode.connect(audioRefs.current.outputAudioContext.destination);
         // --- End Initialize Audio ---
 
-        sessionPromiseRef.current = ai.live.connect({
+        const sessionPromise = ai.live.connect({
             model: 'gemini-2.5-flash-native-audio-preview-09-2025',
             callbacks: {
                 onopen: async () => {
@@ -129,17 +155,23 @@ export const VoiceTutor: React.FC = () => {
                         audioRefs.current.scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
                             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                             const pcmBlob: Blob = {
-                                data: encode(new Uint8Array(new Int16Array(inputData.map(d => d * 32768)).buffer)),
+                                data: encode(new Uint8Array(new Int16Array(inputData.map(d => Math.max(-1.0, Math.min(1.0, d)) * 32767)).buffer)),
                                 mimeType: 'audio/pcm;rate=16000',
                             };
-                            if (sessionPromiseRef.current) {
-                                sessionPromiseRef.current.then((session) => {
-                                    session.sendRealtimeInput({ media: pcmBlob });
-                                });
-                            }
+                            sessionPromise.then((session) => {
+                                session.sendRealtimeInput({ media: pcmBlob });
+                            });
                         };
                         source.connect(audioRefs.current.scriptProcessor);
                         audioRefs.current.scriptProcessor.connect(audioRefs.current.inputAudioContext!.destination);
+
+                        // Send an initial silent audio packet with the greeting text to start the conversation
+                        sessionPromise.then(session => {
+                            session.sendRealtimeInput({
+                                text: GREETINGS[selectedLanguage.code] || GREETINGS['en-US']
+                            });
+                        });
+
                     } catch (err) {
                         console.error("Microphone access error:", err);
                         alert("Microphone access was denied. Please allow microphone access in your browser settings to use the Voice Tutor.");
@@ -148,27 +180,22 @@ export const VoiceTutor: React.FC = () => {
                 },
                 onmessage: async (message: LiveServerMessage) => {
                     if (message.serverContent?.outputTranscription) {
-                        currentOutput += message.serverContent.outputTranscription.text;
+                        const text = message.serverContent.outputTranscription.text;
+                        setCurrentTranscription(prev => ({ ...prev, model: prev.model + text}));
                     }
                     if (message.serverContent?.inputTranscription) {
-                        currentInput += message.serverContent.inputTranscription.text;
+                        const text = message.serverContent.inputTranscription.text;
+                        setCurrentTranscription(prev => ({ ...prev, user: prev.user + text}));
                     }
                     if (message.serverContent?.turnComplete) {
-                        // FIX: Refactored to be more readable and to fix a TypeScript type inference error
-                        // where the 'source' property was being widened to 'string' instead of 'user' | 'model'.
-                        const newEntries: Transcription[] = [];
-                        if (currentInput.trim()) {
-                            newEntries.push({ source: 'user', text: currentInput });
-                        }
-                        if (currentOutput.trim()) {
-                            newEntries.push({ source: 'model', text: currentOutput });
-                        }
-
-                        if (newEntries.length > 0) {
-                            setTranscriptionHistory(prev => [...prev, ...newEntries]);
-                        }
-                        currentInput = "";
-                        currentOutput = "";
+                        const { user, model } = currentTranscription;
+                        setTranscriptionHistory(prev => {
+                            const newHistory = [...prev];
+                            if (user.trim()) newHistory.push({ source: 'user', text: user });
+                            if (model.trim()) newHistory.push({ source: 'model', text: model });
+                            return newHistory;
+                        });
+                        setCurrentTranscription({ user: '', model: '' });
                     }
 
                     const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
@@ -204,9 +231,11 @@ export const VoiceTutor: React.FC = () => {
                 speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
                 outputAudioTranscription: {},
                 inputAudioTranscription: {},
-                systemInstruction: `You are a helpful AI tutor from Edgelearn. Your name is Edgelearn AI. Please respond in ${selectedLanguage.name}. Be friendly, encouraging, and clear in your explanations.`
+                systemInstruction: `You are a helpful AI tutor from Edgelearn. Your name is Edgelearn AI. Your entire conversation with the user MUST be in ${selectedLanguage.name}. Be friendly, encouraging, and clear in your explanations.`,
+                thinkingConfig: { thinkingBudget: 0 }
             },
         });
+        sessionPromiseRef.current = sessionPromise;
     };
 
     return (
@@ -224,7 +253,7 @@ export const VoiceTutor: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                {transcriptionHistory.length === 0 && (
+                {transcriptionHistory.length === 0 && !currentTranscription.user && !currentTranscription.model && (
                      <div className="text-center text-gray-500 dark:text-gray-400">
                         <p>{isRecording ? 'Listening...' : 'Press the microphone to start the conversation.'}</p>
                     </div>
@@ -236,6 +265,20 @@ export const VoiceTutor: React.FC = () => {
                         </div>
                     </div>
                 ))}
+                {currentTranscription.user && (
+                    <div className="flex justify-end">
+                        <div className="max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-xl shadow bg-purple-600/50 text-white">
+                           <p><span className="font-bold capitalize">User: </span>{currentTranscription.user}</p>
+                        </div>
+                    </div>
+                )}
+                 {currentTranscription.model && (
+                    <div className="flex justify-start">
+                        <div className="max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-xl shadow bg-gray-100/50 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200">
+                           <p><span className="font-bold capitalize">Model: </span>{currentTranscription.model}</p>
+                        </div>
+                    </div>
+                )}
                  <div ref={messagesEndRef} />
             </div>
 

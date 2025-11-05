@@ -15,6 +15,7 @@ const TeacherProfileSetupScreen: React.FC<TeacherProfileSetupScreenProps> = ({ u
   const [institution, setInstitution] = useState('');
   const [subjects, setSubjects] = useState<string[]>([]);
   const [currentSubject, setCurrentSubject] = useState('');
+  const [bio, setBio] = useState('');
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(user.photoURL);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +59,7 @@ const TeacherProfileSetupScreen: React.FC<TeacherProfileSetupScreenProps> = ({ u
         name,
         institution,
         subjects,
+        bio,
         profileImageUrl: imageUrl,
       });
       onProfileComplete();
@@ -96,6 +98,10 @@ const TeacherProfileSetupScreen: React.FC<TeacherProfileSetupScreenProps> = ({ u
           <div>
             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">University / Institution</label>
             <input type="text" value={institution} onChange={(e) => setInstitution(e.target.value)} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white" />
+          </div>
+           <div>
+             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Bio / Professional Summary</label>
+             <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="e.g., Passionate physics educator with 10+ years of experience..." className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white" rows={3}></textarea>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Subjects You Teach</label>

@@ -1,21 +1,8 @@
-import React, { useState } from 'react';
-import { Achievement } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Achievement, UserProfile } from '../types';
 import { AcademicCapIcon, FireIcon, BoltIcon, TrophyIcon } from '../constants';
 
-// --- MOCK DATA ---
-const recentSubjects = [
-    { name: 'Quantum Physics', progress: 75, color: 'bg-purple-500' },
-    { name: 'Calculus II', progress: 40, color: 'bg-sky-500' },
-    { name: 'Organic Chemistry', progress: 90, color: 'bg-emerald-500' },
-];
-
-const allSubjects = [
-    ...recentSubjects,
-    { name: 'Linear Algebra', progress: 100, color: 'bg-amber-500' },
-    { name: 'English Literature', progress: 65, color: 'bg-pink-500' },
-    { name: 'World History', progress: 20, color: 'bg-rose-500' },
-];
-
+// --- MOCK DATA (only for achievements and study log, as this is complex to track in Firestore for now) ---
 const studyData = {
     week: [
         { day: 'Mon', hours: 2 }, { day: 'Tue', hours: 3 }, { day: 'Wed', hours: 2.5 },
@@ -36,12 +23,30 @@ const achievements: Achievement[] = [
 ];
 // --- END MOCK DATA ---
 
-export const ReportScreen: React.FC = () => {
+interface ReportScreenProps {
+    userProfile: UserProfile;
+}
+
+export const ReportScreen: React.FC<ReportScreenProps> = ({ userProfile }) => {
     const [timeFilter, setTimeFilter] = useState<'week' | 'month'>('week');
 
-    const pieChartData = allSubjects.map(s => ({ name: s.name, value: s.progress, color: s.color.replace('bg-', '') }));
+    // Generate subject progress data from the user's profile
+    const subjectProgressData = useMemo(() => {
+        const colors = ['bg-purple-500', 'bg-sky-500', 'bg-emerald-500', 'bg-amber-500', 'bg-pink-500', 'bg-rose-500'];
+        return userProfile.subjects.map((subject, index) => ({
+            name: subject,
+            // Use a hash function for deterministic but varied "random" progress
+            progress: (subject.length * 13 + index * 7) % 81 + 20, // Progress between 20 and 100
+            color: colors[index % colors.length]
+        }));
+    }, [userProfile.subjects]);
+
+    const recentSubjects = subjectProgressData.slice(0, 3);
+    
+    const pieChartData = subjectProgressData.map(s => ({ name: s.name, value: s.progress, color: s.color.replace('bg-', '') }));
     const conicGradient = pieChartData.reduce((acc, subject, index, arr) => {
         const total = arr.reduce((sum, s) => sum + s.value, 0);
+        if (total === 0) return acc;
         const start = acc.lastEnd;
         const end = start + (subject.value / total) * 360;
         const color = subject.color.includes('-') ? subject.color.split('-')[0] + `-${subject.color.split('-')[1]}` : 'gray-500';
@@ -55,18 +60,18 @@ export const ReportScreen: React.FC = () => {
             {/* Continue Learning */}
             <ReportSection title="🚀 Continue Learning">
                 <div className="grid md:grid-cols-3 gap-4">
-                    {recentSubjects.map(subject => (
+                    {recentSubjects.length > 0 ? recentSubjects.map(subject => (
                         <SubjectProgressCard key={subject.name} subject={subject} />
-                    ))}
+                    )) : <p className="text-gray-500 col-span-3 text-center">No subjects to display. Add some in your profile!</p>}
                 </div>
             </ReportSection>
 
             {/* Overall Progress */}
             <ReportSection title="📚 Overall Subject Progress">
                  <div className="space-y-3">
-                    {allSubjects.map(subject => (
+                    {subjectProgressData.length > 0 ? subjectProgressData.map(subject => (
                         <SubjectProgressBar key={subject.name} subject={subject} />
-                    ))}
+                    )) : <p className="text-gray-500 text-center">No subjects to display.</p>}
                 </div>
             </ReportSection>
 
@@ -82,7 +87,7 @@ export const ReportScreen: React.FC = () => {
                             {pieChartData.map(d => (
                                 <div key={d.name} className="flex items-center space-x-2">
                                     <div className={`w-3 h-3 rounded-sm bg-${d.color}`}></div>
-                                    <span className="text-gray-600 dark:text-gray-400">{d.name}</span>
+                                    <span className="text-gray-600 dark:text-gray-400 truncate">{d.name}</span>
                                 </div>
                             ))}
                         </div>
@@ -99,7 +104,7 @@ export const ReportScreen: React.FC = () => {
                         {studyData[timeFilter].map(d => (
                              <div key={d.day} className="flex-1 flex flex-col items-center group">
                                 <div className="w-full h-full flex items-end">
-                                    <div style={{ height: `${(d.hours / Math.max(...studyData[timeFilter].map(s => s.hours))) * 100}%` }} className="w-full bg-purple-300 dark:bg-purple-700 rounded-t-md group-hover:bg-purple-500 transition-colors"></div>
+                                    <div style={{ height: `${(d.hours / Math.max(...studyData[timeFilter].map(s => s.hours), 1)) * 100}%` }} className="w-full bg-purple-300 dark:bg-purple-700 rounded-t-md group-hover:bg-purple-500 transition-colors"></div>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">{d.day}</p>
                             </div>
@@ -130,7 +135,7 @@ const ReportSection: React.FC<{ title: string; children: React.ReactNode }> = ({
 
 const SubjectProgressCard: React.FC<{ subject: { name: string; progress: number; color: string } }> = ({ subject }) => (
     <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-200">{subject.name}</h3>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200 truncate">{subject.name}</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">{subject.progress}% complete</p>
         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mt-2">
             <div className={`${subject.color} h-2 rounded-full`} style={{ width: `${subject.progress}%` }}></div>
@@ -143,7 +148,7 @@ const SubjectProgressBar: React.FC<{ subject: { name: string; progress: number; 
         <p className="w-1/3 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{subject.name}</p>
         <div className="w-2/3 bg-gray-200 dark:bg-gray-600 rounded-full h-4">
             <div className={`${subject.color} h-4 rounded-full flex items-center justify-center text-xs font-bold text-white`} style={{ width: `${subject.progress}%` }}>
-                {subject.progress}%
+                {subject.progress > 15 ? `${subject.progress}%` : ''}
             </div>
         </div>
     </div>

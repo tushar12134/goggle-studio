@@ -15,6 +15,7 @@ const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ user, onProfile
   const [grade, setGrade] = useState('');
   const [subjects, setSubjects] = useState<string[]>([]);
   const [currentSubject, setCurrentSubject] = useState('');
+  const [bio, setBio] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,7 +45,15 @@ const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ user, onProfile
         institution,
         grade,
         subjects,
+        bio,
         profileImageUrl: user.photoURL || undefined,
+        learningProgress: {
+            completedAssignments: 5,
+            totalAssignments: 10,
+            averageQuizScore: 82,
+            studyHours: 13.5,
+            studyGoal: 20,
+        }
       });
       onProfileComplete();
     } catch (err) {
@@ -75,6 +84,10 @@ const ProfileSetupScreen: React.FC<ProfileSetupScreenProps> = ({ user, onProfile
           <div>
             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Grade / Year</label>
             <input type="text" value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white" />
+          </div>
+          <div>
+             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Bio</label>
+             <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell us a little about yourself..." className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white" rows={2}></textarea>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Subjects</label>

@@ -1,13 +1,15 @@
 import React from 'react';
 import { NAV_ITEMS } from '../constants';
-import { Screen } from '../types';
+import { Screen, UserProfile } from '../types';
 
 interface BottomNavProps {
   activeScreen: Screen;
   setActiveScreen: (screen: Screen) => void;
+  userProfile: UserProfile;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, setActiveScreen }) => {
+  // The navigation is now the same for both students and teachers.
   return (
     <nav className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
       <div className="flex justify-around items-center h-16">

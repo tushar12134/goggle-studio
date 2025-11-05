@@ -1,20 +1,27 @@
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChatBubbleOvalIcon, XMarkIcon } from '../constants';
-import { generateText } from '../services/geminiService';
+import { GoogleGenAI } from '@google/genai';
 import { ChatMessage } from '../types';
+
+if (!process.env.API_KEY) {
+    console.warn("API_KEY environment variable not set for FloatingChatbot. It may not function.");
+}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+
 
 export const FloatingChatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    // Initialize position to the bottom right corner with some padding
-    const [position, setPosition] = useState({ x: window.innerWidth - 64 - 16, y: window.innerHeight - 64 - 16 });
+    const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 80 });
     const [isDragging, setIsDragging] = useState(false);
     
-    // Refs to manage drag state and element dimensions
-    const dragStartOffset = useRef({ x: 0, y: 0 });
     const botRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const dragHappened = useRef(false);
+    
+    // Refs for robust drag handling
+    const dragHappenedRef = useRef(false);
+    const dragStartOffset = useRef({ x: 0, y: 0 });
 
     // Chat state
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -40,156 +47,182 @@ export const FloatingChatbot: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Keep the bot within the viewport on window resize
-    const updatePositionForResize = useCallback(() => {
-        if (!botRef.current) return;
-        const botRect = botRef.current.getBoundingClientRect();
-        // Adjust position based on whether the chat window is open or just the button
-        const currentWidth = isOpen ? botRect.width : 64; // 64px is the button width
-        const currentHeight = isOpen ? botRect.height : 64; // 64px is the button height
-
-        setPosition(currentPos => ({
-            x: Math.max(16, Math.min(currentPos.x, window.innerWidth - currentWidth - 16)),
-            y: Math.max(16, Math.min(currentPos.y, window.innerHeight - currentHeight - 16)),
-        }));
+    // Effect to keep chatbot on screen during window resize
+    useEffect(() => {
+        const handleResize = () => {
+            setPosition(prev => {
+                if (!botRef.current) return prev;
+                const botRect = botRef.current.getBoundingClientRect();
+                const currentWidth = isOpen ? botRect.width : 64;
+                const currentHeight = isOpen ? botRect.height : 64;
+    
+                const newX = Math.max(16, Math.min(prev.x, window.innerWidth - currentWidth - 16));
+                const newY = Math.max(16, Math.min(prev.y, window.innerHeight - currentHeight - 16));
+                return { x: newX, y: newY };
+            });
+        };
+    
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+    
+        return () => window.removeEventListener('resize', handleResize);
     }, [isOpen]);
 
-    useEffect(() => {
-        window.addEventListener('resize', updatePositionForResize);
-        updatePositionForResize(); // Initial check
-        return () => window.removeEventListener('resize', updatePositionForResize);
-    }, [updatePositionForResize]);
-
     // --- Drag and Drop Logic ---
-
     const handleDragStart = useCallback((clientX: number, clientY: number) => {
         if (!botRef.current) return;
-        dragHappened.current = false;
         setIsDragging(true);
+        dragHappenedRef.current = false;
+        
         const botRect = botRef.current.getBoundingClientRect();
         dragStartOffset.current = {
             x: clientX - botRect.left,
             y: clientY - botRect.top,
         };
+        // Add a class to disable text selection while dragging
+        document.body.style.userSelect = 'none';
     }, []);
 
     const handleDragMove = useCallback((clientX: number, clientY: number) => {
         if (!isDragging) return;
-        dragHappened.current = true;
+        dragHappenedRef.current = true;
         
         let newX = clientX - dragStartOffset.current.x;
         let newY = clientY - dragStartOffset.current.y;
         
         if (botRef.current) {
             const botRect = botRef.current.getBoundingClientRect();
-            // Clamp position to stay within the viewport with a 16px padding
             const currentWidth = isOpen ? botRect.width : 64;
             const currentHeight = isOpen ? botRect.height : 64;
 
             newX = Math.max(16, Math.min(newX, window.innerWidth - currentWidth - 16));
             newY = Math.max(16, Math.min(newY, window.innerHeight - currentHeight - 16));
         }
-
         setPosition({ x: newX, y: newY });
-    }, [isDragging, isOpen]);
+    }, [isOpen, isDragging]);
 
     const handleDragEnd = useCallback(() => {
         setIsDragging(false);
-        setTimeout(() => { dragHappened.current = false; }, 0);
+        document.body.style.userSelect = '';
+        // Use a short timeout to allow click event to process `dragHappenedRef`
+        setTimeout(() => {
+            dragHappenedRef.current = false;
+        }, 0);
     }, []);
 
-    // Mouse event handlers for dragging
-    const onMouseDown = (e: React.MouseEvent) => {
-        if (e.button !== 0) return;
-        const target = e.target as HTMLElement;
-        if ((isOpen && target.closest('.chatbot-header')) || (!isOpen && target.closest('.floating-chatbot-button'))) {
-            handleDragStart(e.clientX, e.clientY);
-        }
-    };
-
-    // Touch event handlers for dragging
-    const onTouchStart = (e: React.TouchEvent) => {
-        if (e.touches.length !== 1) return;
-        const target = e.target as HTMLElement;
-        if ((isOpen && target.closest('.chatbot-header')) || (!isOpen && target.closest('.floating-chatbot-button'))) {
-            handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
-        }
-    };
-    
-    // Effect to add/remove global event listeners for dragging
+    // Effect to manage global event listeners for dragging
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => handleDragMove(e.clientX, e.clientY);
         const onTouchMove = (e: TouchEvent) => {
             if (e.touches.length === 1) {
-                e.preventDefault(); // Prevent page scroll while dragging
                 handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
             }
         };
 
+        const onUp = () => handleDragEnd();
+
+        // These listeners are only active while dragging is happening.
         if (isDragging) {
             window.addEventListener('mousemove', onMouseMove);
-            window.addEventListener('touchmove', onTouchMove, { passive: false });
-            window.addEventListener('mouseup', handleDragEnd);
-            window.addEventListener('touchend', handleDragEnd);
+            window.addEventListener('touchmove', onTouchMove, { passive: true });
+            window.addEventListener('mouseup', onUp);
+            window.addEventListener('touchend', onUp);
         }
 
         return () => {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('touchmove', onTouchMove);
-            window.removeEventListener('mouseup', handleDragEnd);
-            window.removeEventListener('touchend', handleDragEnd);
+            window.removeEventListener('mouseup', onUp);
+            window.removeEventListener('touchend', onUp);
         };
     }, [isDragging, handleDragMove, handleDragEnd]);
-
-    // --- Chat Logic ---
-
+    
+    // --- Chat Logic (already streaming, which is good for performance) ---
     const handleSend = async () => {
         if (input.trim() === '' || isLoading) return;
-        
+    
         const userMessage: ChatMessage = { role: 'user', text: input };
         setMessages(prev => [...prev, userMessage]);
         const currentInput = input;
         setInput('');
         setIsLoading(true);
-
-        const systemPrompt = `You are a friendly and helpful AI assistant from Edgelearn. Provide concise and helpful answers.`;
-        const fullPrompt = `${systemPrompt}\n\nUser Question: ${currentInput}`;
-
-        const responseText = await generateText(fullPrompt); // Uses default 'gemini-flash-lite-latest' from the service
-        const modelMessage: ChatMessage = { role: 'model', text: responseText };
-        setMessages(prev => [...prev, modelMessage]);
-        setIsLoading(false);
+    
+        setMessages(prev => [...prev, { role: 'model', text: '' }]);
+    
+        try {
+            const systemPrompt = `You are a friendly and helpful AI assistant from Edgelearn. Provide concise and helpful answers.`;
+            const fullPrompt = `${systemPrompt}\n\nUser Question: ${currentInput}`;
+    
+            const stream = await ai.models.generateContentStream({
+                model: 'gemini-flash-latest',
+                contents: fullPrompt,
+                config: {
+                    thinkingConfig: { thinkingBudget: 0 }
+                }
+            });
+    
+            for await (const chunk of stream) {
+                const chunkText = chunk.text;
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage.role === 'model') {
+                        lastMessage.text += chunkText;
+                    }
+                    return newMessages;
+                });
+            }
+        } catch (error) {
+            console.error("Error generating streaming response:", error);
+            setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage.role === 'model' && lastMessage.text === '') {
+                    lastMessage.text = "Sorry, I encountered an error. Please try again.";
+                }
+                return newMessages;
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
     
-    // Toggles the chat window open/closed if no drag occurred
-    const handleButtonClick = (e: React.MouseEvent | React.TouchEvent) => {
-        e.stopPropagation(); 
-        if (!dragHappened.current) {
+    const handleToggleOpen = () => {
+        if (!dragHappenedRef.current) {
             setIsOpen(prev => !prev);
         }
+    };
+
+    const onMouseDown = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        handleDragStart(e.clientX, e.clientY);
+    };
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length !== 1) return;
+        handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
     };
 
     return (
         <div
             ref={botRef}
-            className="fixed z-50"
+            className="fixed z-50 select-none"
             style={{ 
                 left: `${position.x}px`, 
-                top: `${position.y}px`, 
-                touchAction: 'none'
+                top: `${position.y}px`,
             }}
-            onMouseDown={onMouseDown}
-            onTouchStart={onTouchStart}
         >
-            {isOpen && (
+            {isOpen ? (
                 <div
                     className="absolute bottom-0 right-0 w-80 sm:w-96 h-[450px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col animate-pop-in origin-bottom-right"
-                    onMouseDown={(e) => e.stopPropagation()} 
-                    onTouchStart={(e) => e.stopPropagation()}
                 >
-                    <div className="chatbot-header flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 cursor-grab active:cursor-grabbing">
+                    <div 
+                        className="chatbot-header flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                        onMouseDown={onMouseDown}
+                        onTouchStart={onTouchStart}
+                    >
                         <h3 className="font-bold text-lg">AI Assistant</h3>
-                        <button onClick={() => setIsOpen(false)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" aria-label="Close chat">
+                        <button onClick={() => setIsOpen(false)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer" aria-label="Close chat">
                             <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
@@ -201,7 +234,7 @@ export const FloatingChatbot: React.FC = () => {
                                 </div>
                             </div>
                         ))}
-                        {isLoading && (
+                        {isLoading && messages[messages.length - 1]?.text === '' && (
                             <div className="flex justify-start animate-slide-in-up">
                                 <div className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700">
                                     <div className="flex items-center space-x-1.5">
@@ -231,15 +264,17 @@ export const FloatingChatbot: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            ) : (
+                <button
+                    onMouseDown={onMouseDown}
+                    onTouchStart={onTouchStart}
+                    onClick={handleToggleOpen}
+                    className="floating-chatbot-button w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-xl flex items-center justify-center transition-transform focus:outline-none cursor-grab active:cursor-grabbing hover:scale-110 active:scale-95"
+                    aria-label="Open chatbot"
+                >
+                   <ChatBubbleOvalIcon className="w-8 h-8" />
+                </button>
             )}
-            <button
-                onMouseUp={handleButtonClick}
-                onTouchEnd={handleButtonClick}
-                className={`floating-chatbot-button w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-xl flex items-center justify-center transition-transform focus:outline-none ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab hover:scale-110 active:scale-95'}`}
-                aria-label={isOpen ? "Close chatbot" : "Open chatbot"}
-            >
-                {isOpen ? <XMarkIcon className="w-8 h-8" /> : <ChatBubbleOvalIcon className="w-8 h-8" />}
-            </button>
         </div>
     );
 };

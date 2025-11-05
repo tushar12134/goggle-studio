@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Theme } from '../App';
-import { ThemeToggle } from './ThemeToggle';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
 }
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void }> = ({ enabled, onChange }) => (
@@ -16,7 +12,7 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
 );
 
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, theme, setTheme }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('notificationSound') === 'true');
   const [volume, setVolume] = useState(() => parseInt(localStorage.getItem('notificationVolume') || '80', 10));
 
@@ -38,15 +34,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, theme, s
           <h2 className="text-2xl font-bold text-center mb-6">Settings</h2>
           
           <div className="space-y-6">
-            {/* Appearance Settings */}
-            <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                <h3 className="font-semibold mb-3">Appearance</h3>
-                <div className="flex items-center justify-between">
-                    <p>Theme</p>
-                    <ThemeToggle theme={theme} setTheme={setTheme} />
-                </div>
-            </div>
-
             {/* Notification Settings */}
             <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                 <h3 className="font-semibold mb-3">Notifications</h3>

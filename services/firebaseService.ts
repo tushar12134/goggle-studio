@@ -3,7 +3,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
-import { UserProfile, Note, FlashcardDeck, ChatSession, WhiteboardEvent, Connection } from '../types';
+import { UserProfile, Note, FlashcardDeck, ChatSession, WhiteboardEvent, Connection, SharedMaterial, Assignment } from '../types';
 
 // Your web app's Firebase configuration
 // IMPORTANT: Replace with your actual Firebase config from your Firebase project settings
@@ -11,9 +11,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyDPYyr_gLB41Tgf6hQMZiHbi0VksRH7oxc",
   authDomain: "adgelearn.firebaseapp.com",
   projectId: "adgelearn",
-  storageBucket: "adgelearn.firebasestorage.app",
+  storageBucket: "adgelearn.appspot.com",
   messagingSenderId: "640475078527",
-  appId: "1:640475078527:android:035ad7da9818b37aa4844a"
 };
 
 // Initialize Firebase using the compat layer
@@ -273,14 +272,26 @@ export const createConnectionRequest = async (studentId: string, teacherId: stri
 };
 
 export const getConnectionsForTeacher = (teacherId: string, callback: (connections: Connection[]) => void): (() => void) => {
+    // FIX: Removed .orderBy() to prevent index error. Sorting will be handled client-side.
     const connectionsQuery = db.collection('connections')
-        .where('teacherId', '==', teacherId)
-        .orderBy('createdAt', 'desc');
+        .where('teacherId', '==', teacherId);
     
-    return connectionsQuery.onSnapshot((querySnapshot) => {
-        const connections = querySnapshot.docs.map(doc => doc.data() as Connection);
-        callback(connections);
-    });
+    return connectionsQuery.onSnapshot(
+        (querySnapshot) => {
+            const connections = querySnapshot.docs.map(doc => doc.data() as Connection);
+            // FIX: Sort data on the client to avoid needing a composite index in Firestore.
+            connections.sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                return dateB - dateA; // Descending order
+            });
+            callback(connections);
+        },
+        (error) => {
+            console.error("Firestore Error in getConnectionsForTeacher:", error);
+            callback([]); // Return empty array on error to prevent UI from breaking.
+        }
+    );
 };
 
 export const getConnectionsForStudent = (studentId: string, callback: (connections: Connection[]) => void): (() => void) => {
@@ -296,4 +307,138 @@ export const getConnectionsForStudent = (studentId: string, callback: (connectio
 export const updateConnectionStatus = async (connectionId: string, status: 'accepted' | 'rejected'): Promise<void> => {
     const connectionRef = db.collection('connections').doc(connectionId);
     await connectionRef.update({ status });
+};
+
+// --- Classroom Materials Functions ---
+const materialsCollection = db.collection('materials');
+
+export const uploadSharedFile = async (file: File, teacherId: string): Promise<{ url: string, name: string, type: string }> => {
+    const filePath = `shared_materials/${teacherId}/${Date.now()}_${file.name}`;
+    const storageRef = storage.ref(filePath);
+    const snapshot = await storageRef.put(file);
+    const downloadURL = await snapshot.ref.getDownloadURL();
+    return { url: downloadURL, name: file.name, type: file.type };
+};
+
+export const shareMaterial = async (materialData: Omit<SharedMaterial, 'id' | 'createdAt'>): Promise<void> => {
+    const materialRef = materialsCollection.doc();
+    const dataToSave = {
+        ...materialData,
+        id: materialRef.id,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    await materialRef.set(dataToSave);
+};
+
+export const getMaterialsForTeacher = (teacherId: string, callback: (materials: SharedMaterial[]) => void): (() => void) => {
+    // FIX: Removed .orderBy() and .limit() to prevent index error. Sorting and limiting will be handled client-side.
+    const query = materialsCollection.where('teacherId', '==', teacherId);
+    return query.onSnapshot(
+        snapshot => {
+            const materials = snapshot.docs.map(doc => doc.data() as SharedMaterial);
+            // FIX: Sort and limit data on the client to avoid needing a composite index.
+            materials.sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                return dateB - dateA; // Descending order
+            });
+            const limitedMaterials = materials.slice(0, 10);
+            callback(limitedMaterials);
+        },
+        (error) => {
+            console.error("Firestore Error in getMaterialsForTeacher:", error);
+            callback([]); // Return empty array on error to prevent UI from breaking.
+        }
+    );
+};
+
+export const getMaterialsForStudent = (studentId: string, callback: (materials: SharedMaterial[]) => void): (() => void) => {
+    let unsubscribeMaterials: (() => void) | null = null;
+
+    const connectionsQuery = db.collection('connections')
+        .where('studentId', '==', studentId)
+        .where('status', '==', 'accepted');
+
+    const unsubscribeConnections = connectionsQuery.onSnapshot(connectionsSnapshot => {
+        if (unsubscribeMaterials) {
+            unsubscribeMaterials();
+            unsubscribeMaterials = null;
+        }
+
+        const teacherIds = connectionsSnapshot.docs.map(doc => doc.data().teacherId);
+
+        if (teacherIds.length > 0) {
+            // FIX: Removed .orderBy() to fix index error. Sorting is now done on the client.
+            const materialsQuery = materialsCollection.where('teacherId', 'in', teacherIds);
+            unsubscribeMaterials = materialsQuery.onSnapshot(materialsSnapshot => {
+                const materials = materialsSnapshot.docs.map(doc => doc.data() as SharedMaterial);
+                 // FIX: Sort data on the client to avoid needing a composite index.
+                materials.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+                    return dateB - dateA; // Descending order
+                });
+                callback(materials);
+            });
+        } else {
+            callback([]);
+        }
+    }, error => {
+        console.error("Error getting student connections for materials:", error);
+        callback([]);
+    });
+
+    return () => {
+        unsubscribeConnections();
+        if (unsubscribeMaterials) {
+            unsubscribeMaterials();
+        }
+    };
+};
+
+// --- NEWLY ADDED FUNCTIONS ---
+
+// Function to get all registered teachers
+export const getAllTeachers = async (): Promise<UserProfile[]> => {
+    const snapshot = await db.collection('users').where('role', '==', 'teacher').get();
+    return snapshot.docs.map(doc => doc.data() as UserProfile);
+};
+
+
+// --- Assignment Functions ---
+const assignmentsCollection = db.collection('assignments');
+
+export const createAssignment = async (assignmentData: Omit<Assignment, 'id'>): Promise<void> => {
+    const assignmentRef = assignmentsCollection.doc();
+    const dataToSave = {
+        ...assignmentData,
+        id: assignmentRef.id,
+    };
+    await assignmentRef.set(dataToSave);
+};
+
+export const getAssignmentsForStudent = (studentId: string, callback: (assignments: Assignment[]) => void): (() => void) => {
+    // FIX: Removed .orderBy() to prevent index error. Sorting will be handled client-side.
+    const query = assignmentsCollection.where('assignedTo', 'array-contains', studentId);
+    
+    return query.onSnapshot(snapshot => {
+        const assignments = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                dueDate: (data.dueDate as firebase.firestore.Timestamp)?.toDate(),
+            } as Assignment;
+        });
+        // FIX: Sort data on the client to avoid needing a composite index in Firestore.
+        assignments.sort((a, b) => {
+            const dateA = a.dueDate?.getTime ? a.dueDate.getTime() : 0;
+            const dateB = b.dueDate?.getTime ? b.dueDate.getTime() : 0;
+            return dateB - dateA; // Descending order
+        });
+        callback(assignments);
+    }, error => {
+        console.error("Error fetching assignments for student:", error);
+        callback([]);
+    });
 };

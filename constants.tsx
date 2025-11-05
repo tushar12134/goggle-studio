@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavItem, Screen, AITutorMode, AITutorModeInfo, ToolType, ToolInfo, Teacher } from './types';
+// FIX: Added Teacher to imports for MOCK_TEACHERS constant.
+import { NavItem, Screen, AITutorMode, AITutorModeInfo, ToolType, ToolInfo, UserProfile } from './types';
 
 // Icons
 export const HomeIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -115,6 +116,31 @@ export const RocketLaunchIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg 
 export const MapIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.5-10.5h-7a.5.5 0 0 0-.5.5v12.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V5a.5.5 0 0 0-.5-.5z" /></svg>);
 export const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>);
 export const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>);
+export const AtomIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m18.364 5.636-12.728 12.728" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m5.636 5.636 12.728 12.728" />
+    </svg>
+);
+export const GlobeAltIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.25 9.75h17.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.75 14.25H3.25" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.25c.75-2 3.75-2 4.5 0" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 20.75c-.75 2-3.75 2-4.5 0" />
+    </svg>
+);
+
+// FIX: Added the missing MagnifyingGlassIcon component to resolve an import error.
+export const MagnifyingGlassIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+    </svg>
+);
 
 // --- NEW TOOL ICONS ---
 export const NoteIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>);
@@ -141,258 +167,64 @@ export const XMarkIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 export const SparklesIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-    </svg>
-);
-export const ClipboardDocumentIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.375 2.25c.621 0 1.125.504 1.125 1.125v3.5m0 0a3.375 3.375 0 0 1-3.375 3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-3.5m3.375 0h-3.375" />
-    </svg>
-);
-export const ShuffleIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h18M16.5 3l4.5 4.5m0 0L16.5 12m4.5-4.5H3" /></svg>);
-export const RestartIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.667 0l3.181-3.183m-4.991-2.691V5.25a2.25 2.25 0 0 0-2.25-2.25h-4.5a2.25 2.25 0 0 0-2.25 2.25v4.992m2.25 0-3.181-3.182a8.25 8.25 0 0 0-11.667 0l-3.181 3.182" /></svg>);
-export const ForwardIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" />
-    </svg>
-);
-export const PhoneIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-    </svg>
-);
-export const BeakerIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c.39.02.78.046 1.17.086a10.463 10.463 0 015.34 1.541M9.75 3.104a10.463 10.463 0 00-5.34 1.541m11.35 1.541c.44-.26.903-.49 1.385-.69a10.463 10.463 0 01-1.385-.69M4 14.5c0 .62.152 1.21.428 1.743A9.75 9.75 0 0012 21c.848 0 1.666-.102 2.45-.294A9.75 9.75 0 0020 14.5c0-.62-.152-1.21-.428-1.743m0-1.057a10.463 10.463 0 00-1.385.69m-11.35-1.541a10.463 10.463 0 011.385.69" />
-    </svg>
-);
-export const BellIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
     </svg>
 );
 
+// --- NEWLY ADDED ICONS ---
+export const BellIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>);
+export const BeakerIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c.15-.02.304-.035.458-.044M9.75 3.104c-.132.58-.231 1.18-.288 1.783M14.25 3.104v5.714c0 .827-.336 1.591-.879 2.121L9.5 14.5M14.25 3.104c-.15-.02-.304-.035-.458-.044m.458.044c.132.58.231 1.18.288 1.783m-4.5 9.396h4.5M14.25 12.5a2.25 2.25 0 00-4.5 0v2.25a2.25 2.25 0 004.5 0v-2.25z" /></svg>);
+export const AcademicCapIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-2.072-1.036A48.922 48.922 0 0112 3.493a48.922 48.922 0 0111.542 5.617l-2.072 1.036m-16.974 0a50.57 50.57 0 002.658-.813" /></svg>);
+export const FireIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.362-3.797A8.254 8.254 0 0115.362 5.214z" /></svg>);
+export const BoltIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>);
+export const TrophyIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 119 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75a3.75 3.75 0 000-7.5" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75V8.25m0 0a3.75 3.75 0 00-3.75-3.75M12 8.25a3.75 3.75 0 013.75-3.75" /></svg>);
+export const ClipboardDocumentIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75c0-.231-.035-.454-.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5" /></svg>);
+export const RestartIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-11.664 0l3.181-3.183a8.25 8.25 0 00-11.664 0l3.181 3.183" /></svg>);
+export const ShuffleIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 4.5l-15 15m0 0h10.5m-10.5 0V9M19.5 19.5l-15-15m0 0v5.25m0-5.25h5.25" /></svg>);
+export const ForwardIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5m4.5-15l7.5 7.5-7.5 7.5" /></svg>);
+export const PhoneIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>);
+export const EraserIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>);
+export const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.067-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>);
+export const CalendarDaysIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>);
+export const FingerPrintIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.588 8.26l-4.708-4.707a2.25 2.25 0 00-3.182-3.182l-4.708-4.707A7.5 7.5 0 017.864 4.243zM5.12 7.864c.213-.213.435-.416.666-.607l4.708 4.707a2.25 2.25 0 003.182 3.182l4.708 4.707c-.191.231-.394.448-.607.666A7.5 7.5 0 0110.5 19.5c-2.92 0-5.709-.556-8.26-1.588l4.707-4.708a2.25 2.25 0 003.182-3.182l4.707-4.708c-.231.191-.448.394-.666.607A7.5 7.5 0 015.12 7.864z" /></svg>);
+export const QrCodeIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5A.75.75 0 014.5 3.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM3.75 10.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM3.75 16.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM10.5 4.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM10.5 10.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM10.5 16.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM16.5 4.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM16.5 10.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zM16.5 16.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5z" /></svg>);
 
-// --- NEW ACHIEVEMENT ICONS ---
-export const FireIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 00-4.24-1.29 8.25 8.25 0 00-2.836.411 8.22 8.22 0 015.58-1.879 8.225 8.225 0 014.24 1.29Z" /></svg>);
-export const AcademicCapIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14v6m-6-3.479V19.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-2.979" /></svg>);
-export const BoltIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" /></svg>);
-export const TrophyIcon = (props: React.SVGProps<SVGSVGElement>) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 1011.64-8.03A9.75 9.75 0 0016.5 18.75z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75V3.75m0 16.5V18" /></svg>);
-// --- END NEW TOOL ICONS ---
-export const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-    </svg>
-);
-export const EraserIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.75a8.966 8.966 0 0 1-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="m16.5 12.75-9-9" />
-    </svg>
-);
 
-
+// --- NEWLY ADDED CONSTANTS ---
 export const NAV_ITEMS: NavItem[] = [
-  { id: Screen.Home, label: 'Home', icon: <HomeIcon className="w-6 h-6" /> },
-  { id: Screen.AITutor, label: 'AI Tutor', icon: <AITutorIcon className="w-6 h-6" /> },
-  { id: Screen.Tools, label: 'Tools', icon: <ToolsIcon className="w-6 h-6" /> },
-  { id: Screen.Report, label: 'Reports', icon: <ReportIcon className="w-6 h-6" /> },
-  { id: Screen.Services, label: 'Services', icon: <BriefcaseIcon className="w-6 h-6" /> },
+    { id: Screen.Home, label: 'Home', icon: <HomeIcon className="w-6 h-6" /> },
+    { id: Screen.AITutor, label: 'AI Tutor', icon: <AITutorIcon className="w-6 h-6" /> },
+    { id: Screen.Tools, label: 'Tools', icon: <ToolsIcon className="w-6 h-6" /> },
+    { id: Screen.Report, label: 'Reports', icon: <ReportIcon className="w-6 h-6" /> },
+    { id: Screen.Profile, label: 'Profile', icon: <UserCircleIcon className="w-6 h-6" /> },
 ];
 
 export const AI_TUTOR_MODES: AITutorModeInfo[] = [
-    // FIX: Updated icon component to use the renamed ChatBubbleOvalIcon.
-    { id: AITutorMode.Chat, label: 'Chat Tutor', icon: <ChatBubbleOvalIcon className="w-5 h-5 mr-2" /> },
-    { id: AITutorMode.Voice, label: 'Voice Tutor', icon: <MicrophoneIcon className="w-5 h-5 mr-2" /> },
-    { id: AITutorMode.Screen, label: 'Screen Share', icon: <ScreenShareIcon className="w-5 h-5 mr-2" /> },
+    { id: AITutorMode.Chat, label: 'Chat', icon: <ChatBubbleOvalIcon className="w-5 h-5 mr-2" /> },
+    { id: AITutorMode.Voice, label: 'Voice', icon: <MicrophoneIcon className="w-5 h-5 mr-2" /> },
+    { id: AITutorMode.Screen, label: 'Screen', icon: <ScreenShareIcon className="w-5 h-5 mr-2" /> },
     { id: AITutorMode.YouTube, label: 'YouTube', icon: <YouTubeIcon className="w-5 h-5 mr-2" /> },
-    { id: AITutorMode.Text, label: 'Text/Doc', icon: <TextIcon className="w-5 h-5 mr-2" /> },
+    { id: AITutorMode.Text, label: 'Text', icon: <TextIcon className="w-5 h-5 mr-2" /> },
     { id: AITutorMode.Code, label: 'Code', icon: <CodeIcon className="w-5 h-5 mr-2" /> },
     { id: AITutorMode.Image, label: 'Image', icon: <ImageIcon className="w-5 h-5 mr-2" /> },
 ];
 
 export const TOOL_DEFINITIONS: ToolInfo[] = [
-    {
-        id: ToolType.NoteCreator,
-        label: 'Note Creator',
-        description: 'Create rich text notes with AI summaries.',
-        icon: <NoteIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.ResumeBuilder,
-        label: 'Resume Builder',
-        description: 'Build and export a professional resume.',
-        icon: <ResumeIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.Flashcards,
-        label: 'Flashcards',
-        description: 'Create decks manually or from notes.',
-        icon: <FlashcardIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.Pomodoro,
-        label: 'Pomodoro Timer',
-        description: 'Focus with a 25/5 timer and log study time.',
-        icon: <PomodoroIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.Calculator,
-        label: 'Calculator',
-        description: 'Basic and scientific calculations.',
-        icon: <CalculatorIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.Communication,
-        label: 'Find a Teacher',
-        description: 'Browse and connect with expert teachers.',
-        icon: <UsersIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.Chat,
-        label: 'Communication Hub',
-        description: 'Access your existing chats with teachers.',
-        icon: <ChatBubbleLeftRightIcon className="w-8 h-8" />
-    },
-    {
-        id: ToolType.Whiteboard,
-        label: 'Whiteboard',
-        description: 'Collaborate in real-time on a shared canvas.',
-        icon: <WhiteboardIcon className="w-8 h-8" />
-    },
+    { id: ToolType.NoteCreator, label: 'Note Creator', description: 'Take smart notes with AI summaries.', icon: <NoteIcon className="w-8 h-8"/> },
+    { id: ToolType.Flashcards, label: 'Flashcards', description: 'Create and study with flashcard decks.', icon: <FlashcardIcon className="w-8 h-8"/> },
+    { id: ToolType.Pomodoro, label: 'Focus Timer', description: 'Use the Pomodoro technique to study.', icon: <PomodoroIcon className="w-8 h-8"/> },
+    { id: ToolType.Whiteboard, label: 'Whiteboard', description: 'Collaborate on a digital whiteboard.', icon: <WhiteboardIcon className="w-8 h-8"/> },
+    { id: ToolType.Calculator, label: 'Calculator', description: 'Standard and scientific calculator.', icon: <CalculatorIcon className="w-8 h-8"/> },
+    { id: ToolType.ResumeBuilder, label: 'Resume Builder', description: 'Build a professional resume with AI.', icon: <ResumeIcon className="w-8 h-8"/> },
+    { id: ToolType.Communication, label: 'Find a Teacher', description: 'Connect with expert teachers.', icon: <UsersIcon className="w-8 h-8"/> },
+    { id: ToolType.Chat, label: 'Chat Hub', description: 'View your conversations with teachers.', icon: <ChatBubbleOvalIcon className="w-8 h-8"/> },
 ];
 
-export const MOCK_TEACHERS: Teacher[] = [
-    {
-        id: 'teacher_jane_doe_123',
-        name: 'Dr. Jane Doe',
-        subject: 'Physics',
-        rating: 4.9,
-        avatar: `https://i.pravatar.cc/150?u=jane_doe`,
-        isOnline: true,
-        bio: 'Passionate physicist with a PhD from MIT, specializing in quantum mechanics. I believe in making complex topics accessible and exciting for all students.',
-        experience: ['10+ years as a University Professor', 'Researcher at CERN', 'Author of "The Quantum Leap"'],
-        teachingStyle: 'Inquiry-based learning with hands-on experiments and real-world examples.',
-    },
-    {
-        id: 'teacher_john_smith_456',
-        name: 'John Smith, M.Sc.',
-        subject: 'Mathematics',
-        rating: 4.8,
-        avatar: `https://i.pravatar.cc/150?u=john_smith`,
-        isOnline: false,
-        bio: 'Dedicated mathematician with a Master\'s in Applied Mathematics. My goal is to build strong problem-solving skills and a love for numbers.',
-        experience: ['5 years as a High School Math Teacher', 'Actuarial Analyst at FinCorp', 'Math Olympiad Coach'],
-        teachingStyle: 'Problem-based learning, focusing on step-by-step solutions and conceptual understanding.',
-    },
-    {
-        id: 'teacher_emily_white_789',
-        name: 'Prof. Emily White',
-        subject: 'Literature',
-        rating: 4.9,
-        avatar: `https://i.pravatar.cc/150?u=emily_white`,
-        isOnline: true,
-        bio: 'Literature enthusiast and university professor with a focus on Shakespearean and modern classics. Let\'s explore the power of storytelling together.',
-        experience: ['Professor of English Literature at State University', 'Published literary critic', 'Editor for "Literary Perspectives" journal'],
-        teachingStyle: 'Socratic seminars, critical analysis, and creative writing workshops.',
-    },
-    {
-        id: 'teacher_michael_b_101',
-        name: 'Michael Brown, Ph.D.',
-        subject: 'Computer Science',
-        rating: 5.0,
-        avatar: `https://i.pravatar.cc/150?u=michael_brown`,
-        isOnline: false,
-        bio: 'Software engineer turned educator with a PhD in AI from Stanford. I love mentoring the next generation of coders and tech innovators.',
-        experience: ['Senior Software Engineer at Google', 'AI Researcher', 'Bootcamp Instructor for Full-Stack Development'],
-        teachingStyle: 'Project-based learning, live coding sessions, and code reviews.',
-    },
-    {
-        id: 'teacher_sara_jones_202',
-        name: 'Dr. Sarah Jones',
-        subject: 'Chemistry',
-        rating: 4.7,
-        avatar: `https://i.pravatar.cc/150?u=sara_jones`,
-        isOnline: true,
-        bio: 'Organic chemist with a passion for making chemistry intuitive and fun. I use interactive simulations and lab demos to bring molecules to life.',
-        experience: ['Postdoctoral Fellow at Harvard', '8 years of teaching undergraduate chemistry', 'Curriculum developer for online science platforms'],
-        teachingStyle: 'Visual and interactive. I use models, simulations, and mnemonics to help with memorization and understanding.',
-    },
-    {
-        id: 'teacher_david_lee_303',
-        name: 'David Lee',
-        subject: 'History',
-        rating: 4.8,
-        avatar: `https://i.pravatar.cc/150?u=david_lee`,
-        isOnline: true,
-        bio: 'A historian who believes that understanding the past is the key to understanding the present. I specialize in World History and political movements.',
-        experience: ['High School History Department Head', 'Museum Curator', 'Historical documentary consultant'],
-        teachingStyle: 'Storytelling, debate, and analysis of primary source documents.',
-    },
-    {
-        id: 'teacher_maria_garcia_404',
-        name: 'Maria Garcia',
-        subject: 'Spanish',
-        rating: 4.9,
-        avatar: `https://i.pravatar.cc/150?u=maria_garcia`,
-        isOnline: false,
-        bio: 'Native Spanish speaker and certified language instructor. My classes are immersive, conversational, and focused on practical communication skills.',
-        experience: ['Certified DELE instructor', '12 years of language tutoring experience', 'Lived and taught in Spain, Mexico, and Colombia'],
-        teachingStyle: 'Communicative Language Teaching (CLT). Lots of conversation, role-playing, and cultural immersion.',
-    },
-    {
-        id: 'teacher_chen_wang_505',
-        name: 'Dr. Chen Wang',
-        subject: 'Biology',
-        rating: 4.8,
-        avatar: `https://i.pravatar.cc/150?u=chen_wang`,
-        isOnline: true,
-        bio: 'Molecular biologist fascinated by the secrets of DNA. My goal is to demystify genetics and cellular biology for students of all levels.',
-        experience: ['Researcher in genetics', 'University lecturer', 'Co-author on several peer-reviewed papers'],
-        teachingStyle: 'Concept mapping, case studies, and linking biological processes to health and disease.',
-    },
-    {
-        id: 'teacher_olivia_taylor_606',
-        name: 'Olivia Taylor, M.A.',
-        subject: 'Art History',
-        rating: 5.0,
-        avatar: `https://i.pravatar.cc/150?u=olivia_taylor`,
-        isOnline: false,
-        bio: 'Art historian with a Master\'s from The Courtauld. I connect art to its cultural and historical context, from Renaissance masterpieces to contemporary installations.',
-        experience: ['Gallery guide at the Met', 'Art history tutor for university students', 'Freelance art writer'],
-        teachingStyle: 'Visual analysis and discussion-based. We will learn to "read" a work of art.',
-    },
-    {
-        id: 'teacher_james_wilson_707',
-        name: 'James Wilson',
-        subject: 'Economics',
-        rating: 4.7,
-        avatar: `https://i.pravatar.cc/150?u=james_wilson`,
-        isOnline: true,
-        bio: 'Former financial analyst who now teaches economics. I make sense of markets, policies, and graphs, connecting theory to today\'s headlines.',
-        experience: ['Financial Analyst at Goldman Sachs', 'AP Economics Teacher', 'Advisor for student investment clubs'],
-        teachingStyle: 'Real-world data analysis, case studies of current events, and simplified models.',
-    },
-    {
-        id: 'teacher_linda_harris_808',
-        name: 'Linda Harris, CPA',
-        subject: 'Accounting',
-        rating: 4.9,
-        avatar: `https://i.pravatar.cc/150?u=linda_harris`,
-        isOnline: true,
-        bio: 'Certified Public Accountant with 15 years of industry experience. I simplify debits, credits, and financial statements for aspiring accountants.',
-        experience: ['Senior Auditor at Deloitte', 'Corporate Controller', 'Tutor for CPA exam candidates'],
-        teachingStyle: 'Practical, problem-solving approach with a focus on real business scenarios.',
-    },
-    {
-        id: 'teacher_robert_clark_909',
-        name: 'Robert Clark',
-        subject: 'Music Theory',
-        rating: 4.8,
-        avatar: `https://i.pravatar.cc/150?u=robert_clark`,
-        isOnline: false,
-        bio: 'Composer and pianist with a degree from Juilliard. I teach the language of music, from basic scales to complex harmonic analysis.',
-        experience: ['Professional composer for film', 'Private piano and theory instructor for 20+ years', 'Orchestra conductor'],
-        teachingStyle: 'Aural skills training (ear training), practical application on an instrument, and analysis of great works.',
-    },
+export const TEACHER_TOOL_DEFINITIONS: ToolInfo[] = [
+    { id: ToolType.CreateAssignment, label: 'Create Assignment', description: 'Assign coursework to your students.', icon: <ClipboardDocumentIcon className="w-8 h-8"/> },
+    { id: ToolType.ShareMaterial, label: 'Share Material', description: 'Upload files and links for your class.', icon: <BriefcaseIcon className="w-8 h-8"/> },
+    { id: ToolType.Chat, label: 'Chat Hub', description: 'View your conversations with students.', icon: <ChatBubbleOvalIcon className="w-8 h-8"/> },
+    { id: ToolType.NoteCreator, label: 'Note Creator', description: 'Take smart notes with AI summaries.', icon: <NoteIcon className="w-8 h-8"/> },
+    { id: ToolType.Flashcards, label: 'Flashcards', description: 'Create and study with flashcard decks.', icon: <FlashcardIcon className="w-8 h-8"/> },
+    { id: ToolType.Whiteboard, label: 'Whiteboard', description: 'Collaborate on a digital whiteboard.', icon: <WhiteboardIcon className="w-8 h-8"/> },
 ];

@@ -44,14 +44,25 @@ export interface AITutorModeInfo {
     icon: React.ReactNode;
 }
 
+export interface LearningProgress {
+    completedAssignments: number;
+    totalAssignments: number;
+    averageQuizScore: number;
+    studyHours: number;
+    studyGoal: number;
+}
+
+
 export interface UserProfile {
     uid: string;
     role: UserRole;
     name: string;
     institution: string;
-    grade?: string;
+    grade?: string; // Optional, for students
     subjects: string[];
     profileImageUrl?: string;
+    learningProgress?: LearningProgress; // Optional, for students
+    bio?: string; // For both students and teachers
 }
 
 // --- New Types for Tools ---
@@ -65,6 +76,8 @@ export enum ToolType {
     Communication = 'communication',
     Whiteboard = 'whiteboard',
     Chat = 'chat',
+    CreateAssignment = 'create-assignment',
+    ShareMaterial = 'share-material',
 }
 
 export interface ToolInfo {
@@ -124,20 +137,6 @@ export interface WhiteboardEvent {
     lineWidth: number;
 }
 
-
-export interface Teacher {
-    id: string; // This will be a mock UID for the teacher
-    name: string;
-    subject: string;
-    rating: number;
-    avatar: string;
-    isOnline: boolean;
-    // New fields for detailed profile
-    bio: string;
-    experience: string[];
-    teachingStyle: string;
-}
-
 export interface Connection {
     id: string;
     studentId: string;
@@ -168,21 +167,38 @@ export interface QuizResponse {
     quiz: QuizQuestion[];
 }
 
+// FIX: Added the missing YouTubeVideoSuggestion type to resolve import errors.
+export interface YouTubeVideoSuggestion {
+    title: string;
+    description: string;
+    youtubeSearchQuery: string;
+}
+
 // --- New Types for Classroom ---
 export interface Assignment {
     id: string;
     title: string;
+    description: string;
     subject: string;
-    dueDate: string;
-    status: 'Pending' | 'Submitted' | 'Graded';
+    dueDate: any; // Stored as Firestore Timestamp
+    teacherId: string;
+    assignedTo: string[]; // Array of student UIDs
+    status: 'Assigned' | 'Submitted' | 'Graded';
 }
 
 export interface SharedMaterial {
     id: string;
+    teacherId: string;
+    teacherName: string;
     title: string;
-    type: 'file' | 'link';
     description: string;
+    type: 'file' | 'link';
+    url: string;
+    fileName?: string;
+    fileType?: string;
+    createdAt: any; // Firestore Timestamp
 }
+
 
 export interface ClassroomInfo {
     id: string;
@@ -197,4 +213,20 @@ export interface ClassroomQuiz {
     subject: string;
     dueDate: string;
     score: number | null; // null if not taken
+}
+
+export interface SubjectStudyPlan {
+    learningObjectives: string[];
+    keyTopics: {
+        title: string;
+        summary: string;
+    }[];
+    recommendedVideos: {
+        title: string;
+        description: string;
+        youtubeSearchQuery: string;
+    }[];
+    practiceProblems: {
+        question: string;
+    }[];
 }
