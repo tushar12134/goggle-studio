@@ -3,7 +3,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
-import { UserProfile, Note, FlashcardDeck, ChatSession, WhiteboardEvent } from '../types';
+import { UserProfile, Note, FlashcardDeck, ChatSession, WhiteboardEvent, Connection } from '../types';
 
 // Your web app's Firebase configuration
 // IMPORTANT: Replace with your actual Firebase config from your Firebase project settings
@@ -26,7 +26,19 @@ export const storage = firebase.storage();
 // This v8-style code now works correctly because of the compat imports above.
 export const createUserProfile = async (uid: string, profileData: Omit<UserProfile, 'uid'>): Promise<void> => {
     const userRef = db.collection('users').doc(uid);
-    await userRef.set({ uid, ...profileData });
+    
+    // Create the full data object, including the UID.
+    const dataToSave: { [key: string]: any } = { uid, ...profileData };
+
+    // Sanitize the object to remove any `undefined` values, which are not supported by Firestore.
+    // This is crucial for optional fields in the UserProfile interface.
+    Object.keys(dataToSave).forEach(key => {
+        if (dataToSave[key] === undefined) {
+            delete dataToSave[key];
+        }
+    });
+
+    await userRef.set(dataToSave);
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
@@ -43,6 +55,14 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 export const updateUserProfile = async (uid: string, profileData: Partial<UserProfile>): Promise<void> => {
     const userRef = db.collection('users').doc(uid);
     await userRef.update(profileData);
+};
+
+export const uploadProfileImage = async (userId: string, file: File): Promise<string> => {
+    const filePath = `profile_images/${userId}/${file.name}`;
+    const storageRef = storage.ref(filePath);
+    const snapshot = await storageRef.put(file);
+    const downloadURL = await snapshot.ref.getDownloadURL();
+    return downloadURL;
 };
 
 
@@ -227,4 +247,53 @@ export const clearWhiteboardEvents = async (sessionId: string): Promise<void> =>
     const batch = db.batch();
     snapshot.docs.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
+};
+
+// --- Connection / Student-Teacher Relationship Functions ---
+
+export const createConnectionRequest = async (studentId: string, teacherId: string): Promise<void> => {
+    // 1. Fetch student profile to denormalize data
+    const studentProfile = await getUserProfile(studentId);
+    if (!studentProfile) {
+        throw new Error("Student profile not found.");
+    }
+
+    // 2. Create a new connection document
+    const connectionRef = db.collection('connections').doc();
+    const newConnection = {
+        id: connectionRef.id,
+        studentId,
+        teacherId,
+        studentName: studentProfile.name,
+        studentProfileImageUrl: studentProfile.profileImageUrl || '',
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    await connectionRef.set(newConnection);
+};
+
+export const getConnectionsForTeacher = (teacherId: string, callback: (connections: Connection[]) => void): (() => void) => {
+    const connectionsQuery = db.collection('connections')
+        .where('teacherId', '==', teacherId)
+        .orderBy('createdAt', 'desc');
+    
+    return connectionsQuery.onSnapshot((querySnapshot) => {
+        const connections = querySnapshot.docs.map(doc => doc.data() as Connection);
+        callback(connections);
+    });
+};
+
+export const getConnectionsForStudent = (studentId: string, callback: (connections: Connection[]) => void): (() => void) => {
+    const connectionsQuery = db.collection('connections')
+        .where('studentId', '==', studentId);
+    
+    return connectionsQuery.onSnapshot((querySnapshot) => {
+        const connections = querySnapshot.docs.map(doc => doc.data() as Connection);
+        callback(connections);
+    });
+};
+
+export const updateConnectionStatus = async (connectionId: string, status: 'accepted' | 'rejected'): Promise<void> => {
+    const connectionRef = db.collection('connections').doc(connectionId);
+    await connectionRef.update({ status });
 };

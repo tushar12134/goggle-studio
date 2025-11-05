@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CogIcon, ForwardIcon } from '../../constants';
 
@@ -87,7 +88,8 @@ export const PomodoroTimer: React.FC = () => {
 
 
     useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
+        // FIX: Changed NodeJS.Timeout to `number` which is the correct return type for setInterval in a browser environment.
+        let interval: number | null = null;
         if (isActive && time > 0) {
             interval = setInterval(() => {
                 setTime(t => t - 1);

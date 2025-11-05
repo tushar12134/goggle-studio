@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
 import { AITutorScreen } from './screens/AITutorScreen';
 import { StudentDashboard } from './screens/StudentDashboard';
-import { Screen, UserProfile, ToolType } from './types';
+import { Screen, UserProfile, ToolType, UserRole } from './types';
 import { NAV_ITEMS } from './constants';
 import { Theme } from './App';
 import { ProfileScreen } from './screens/ProfileScreen';
@@ -11,6 +12,8 @@ import { ReportScreen } from './screens/ReportScreen';
 import { ToolsScreen } from './screens/ToolsScreen';
 import { ServicesScreen } from './screens/ServicesScreen';
 import SettingsModal from './components/SettingsModal';
+import { TeacherDashboard } from './screens/TeacherDashboard';
+import { FloatingChatbot } from './components/FloatingChatbot';
 
 interface MainAppProps {
     userProfile: UserProfile;
@@ -31,6 +34,9 @@ const MainApp: React.FC<MainAppProps> = ({ userProfile, theme, setTheme }) => {
   const renderScreen = () => {
     switch (activeScreen) {
       case Screen.Home:
+        if (userProfile.role === UserRole.Teacher) {
+            return <TeacherDashboard userProfile={userProfile} />;
+        }
         return <StudentDashboard userProfile={userProfile} setActiveScreen={setActiveScreen} navigateToTool={navigateToTool} />;
       case Screen.AITutor:
         return <AITutorScreen />;
@@ -75,6 +81,7 @@ const MainApp: React.FC<MainAppProps> = ({ userProfile, theme, setTheme }) => {
             setTheme={setTheme} 
         />
       )}
+      <FloatingChatbot />
     </div>
   );
 };

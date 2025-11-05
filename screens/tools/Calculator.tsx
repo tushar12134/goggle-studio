@@ -1,4 +1,6 @@
 
+
+
 import React, { useState } from 'react';
 
 type Operator = '+' | '-' | '*' | '/' | '^';
@@ -102,8 +104,15 @@ export const Calculator: React.FC = () => {
             setDisplay(display + p);
         }
     }
+    
+    // FIX: Defined a proper interface for CalcButton props and defined it as a React.FC to solve typing issues.
+    interface CalcButtonProps {
+        children: React.ReactNode;
+        onClick: () => void;
+        className?: string;
+    }
 
-    const CalcButton = ({ children, onClick, className = '' }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
+    const CalcButton: React.FC<CalcButtonProps> = ({ children, onClick, className = '' }) => (
         <button onClick={onClick} className={`bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-xl sm:text-2xl font-semibold transition-colors active:scale-95 py-3 ${className}`}>
             {children}
         </button>
@@ -115,6 +124,7 @@ export const Calculator: React.FC = () => {
             
             <button onClick={() => setIsScientific(!isScientific)} className="w-full mb-4 text-sm text-purple-600 dark:text-purple-400 font-semibold">{isScientific ? 'Standard' : 'Scientific'} Mode</button>
             
+            {/* FIX: The 'CalcButton' component requires a 'children' prop. Added the button's text/symbol as a child for each instance. */}
             <div className={`grid ${isScientific ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
                 {isScientific && <>
                     <CalcButton onClick={() => setIsRadians(!isRadians)} className="!text-sm">{isRadians ? 'RAD' : 'DEG'}</CalcButton>

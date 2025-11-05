@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrainIcon, UsersIcon, ChartIcon } from '../constants';
 
@@ -29,6 +30,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onGetStarted }) => {
       </div>
 
       <div className="flex flex-wrap justify-center gap-3 mb-10">
+        {/* FIX: The 'Tag' component requires a 'children' prop. Added content inside the tags to resolve the error. */}
         <Tag>🧠 Smart Learning</Tag>
         <Tag>⚡️ Fast Results</Tag>
         <Tag>🏆 Track Progress</Tag>
@@ -59,7 +61,8 @@ interface TagProps {
   children: React.ReactNode;
 }
 
-const Tag = ({ children }: TagProps) => (
+// FIX: Defined Tag as a React.FC to prevent potential issues with TypeScript recognizing special React props like 'key'.
+const Tag: React.FC<TagProps> = ({ children }) => (
     <span className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold px-3 py-1 rounded-full">{children}</span>
 )
 

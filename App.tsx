@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import LandingScreen from './screens/LandingScreen';
 import MainApp from './MainApp';
-import AuthScreen from './screens/AuthScreen';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './services/firebaseService';
-import { UserProfile } from './types';
+import { UserProfile, UserRole } from './types';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
+import TeacherProfileSetupScreen from './screens/TeacherProfileSetupScreen';
+import RoleSelectionScreen from './screens/RoleSelectionScreen';
+import StudentAuthScreen from './screens/StudentAuthScreen';
+import TeacherAuthScreen from './screens/TeacherAuthScreen';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -14,6 +17,7 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLanding, setShowLanding] = useState(true);
+  const [authRole, setAuthRole] = useState<UserRole | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('theme') as Theme) || 'system';
   });
@@ -22,33 +26,27 @@ const App: React.FC = () => {
     const root = window.document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-    // 1. Define the handler for system theme changes
-    const systemThemeChangeHandler = (e: MediaQueryListEvent) => {
-      // Only apply if the current theme is 'system'
-      // We check localStorage directly to ensure we have the latest persisted value
-      if ((localStorage.getItem('theme') || 'system') === 'system') {
-        root.classList.toggle('dark', e.matches);
-      }
-    };
-
-    // 2. Apply the current theme state from the user's selection
-    if (theme === 'light') {
-      root.classList.remove('dark');
-    } else if (theme === 'dark') {
-      root.classList.add('dark');
-    } else { // 'system'
-      root.classList.toggle('dark', mediaQuery.matches);
-    }
-    
-    // 3. Persist the theme choice to localStorage
+    // Always persist the theme choice.
     localStorage.setItem('theme', theme);
 
-    // 4. Add listener for system changes
-    mediaQuery.addEventListener('change', systemThemeChangeHandler);
+    const systemThemeChangeHandler = (e: MediaQueryListEvent) => {
+        // This handler is only active when theme is 'system'.
+        root.classList.toggle('dark', e.matches);
+    };
 
-    // 5. Cleanup listener on unmount or when the effect re-runs
+    if (theme === 'system') {
+        // For 'system', set the class based on the media query and listen for changes.
+        root.classList.toggle('dark', mediaQuery.matches);
+        mediaQuery.addEventListener('change', systemThemeChangeHandler);
+    } else {
+        // For 'light' or 'dark', just set the class directly.
+        root.classList.toggle('dark', theme === 'dark');
+    }
+
+    // Cleanup: remove the listener when the component unmounts or the theme changes.
+    // The new effect will add it back if necessary.
     return () => {
-      mediaQuery.removeEventListener('change', systemThemeChangeHandler);
+        mediaQuery.removeEventListener('change', systemThemeChangeHandler);
     };
   }, [theme]);
   
@@ -70,6 +68,7 @@ const App: React.FC = () => {
         await fetchProfile(currentUser.uid);
       } else {
         setProfile(null);
+        setAuthRole(null); // Reset role on signout
       }
       setLoading(false);
     });
@@ -89,10 +88,29 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <AuthScreen />;
+    if (!authRole) {
+      return <RoleSelectionScreen onSelectRole={setAuthRole} />;
+    }
+    if (authRole === UserRole.Student) {
+      return <StudentAuthScreen onBack={() => setAuthRole(null)} />;
+    }
+    if (authRole === UserRole.Teacher) {
+      return <TeacherAuthScreen onBack={() => setAuthRole(null)} />;
+    }
+    // Fallback just in case
+    return <RoleSelectionScreen onSelectRole={setAuthRole} />;
   }
   
   if (user && !profile) {
+      const roleFromAuth = sessionStorage.getItem('selectedRole') as UserRole;
+      if (roleFromAuth) {
+          sessionStorage.removeItem('selectedRole'); // Clean up immediately
+      }
+
+      if (roleFromAuth === UserRole.Teacher) {
+          return <TeacherProfileSetupScreen user={user} onProfileComplete={() => fetchProfile(user.uid)} />;
+      }
+      // Default to student setup if no role is found or it's 'student'
       return <ProfileSetupScreen user={user} onProfileComplete={() => fetchProfile(user.uid)} />;
   }
 

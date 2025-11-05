@@ -48,9 +48,10 @@ export interface UserProfile {
     uid: string;
     role: UserRole;
     name: string;
-    school: string;
-    grade: string;
+    institution: string;
+    grade?: string;
     subjects: string[];
+    profileImageUrl?: string;
 }
 
 // --- New Types for Tools ---
@@ -135,6 +136,16 @@ export interface Teacher {
     bio: string;
     experience: string[];
     teachingStyle: string;
+}
+
+export interface Connection {
+    id: string;
+    studentId: string;
+    studentName: string;
+    studentProfileImageUrl?: string;
+    teacherId: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: any; // Firestore Timestamp
 }
 
 // --- New Types for Reports ---

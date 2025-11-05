@@ -21,7 +21,7 @@ const fileToGenerativePart = async (file: File) => {
   };
 };
 
-export const generateText = async (prompt: string, modelName: string = 'gemini-2.5-flash'): Promise<string> => {
+export const generateText = async (prompt: string, modelName: string = 'gemini-flash-lite-latest'): Promise<string> => {
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
         model: modelName,

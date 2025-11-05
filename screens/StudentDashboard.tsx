@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Screen, UserProfile, ToolType } from '../types';
 import { ClockIcon, UsersIcon, StreakIcon, BookIcon, AITutorIcon, ToolsIcon, ReportIcon, BeakerIcon, BriefcaseIcon } from '../constants';
@@ -77,6 +78,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ userProfile,
        <div>
         <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">📚 My Subjects</h3>
         <div className="flex gap-2 flex-wrap">
+            {/* FIX: The 'SubjectChip' component requires a 'children' prop. Ensured the subject name is passed as a child within the map function. */}
             {userProfile.subjects.map(subject => <SubjectChip key={subject}>{subject}</SubjectChip>)}
         </div>
        </div>
@@ -124,7 +126,8 @@ interface SubjectChipProps {
   children: React.ReactNode;
 }
 
-const SubjectChip = ({ children }: SubjectChipProps) => (
+// FIX: Defined SubjectChip as a React.FC to prevent potential issues with TypeScript recognizing special React props like 'key'.
+const SubjectChip: React.FC<SubjectChipProps> = ({ children }) => (
     <span className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium px-4 py-2 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
         {children}
     </span>

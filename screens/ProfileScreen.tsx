@@ -92,7 +92,7 @@ export const ProfileScreen: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="animate-pop-in">
-                <VirtualIdCard name={isEditing ? editState.name! : profile.name} school={isEditing ? editState.school! : profile.school} grade={isEditing ? editState.grade! : profile.grade} role={profile.role} />
+                <VirtualIdCard name={isEditing ? editState.name! : profile.name} institution={isEditing ? editState.institution! : profile.institution} grade={isEditing ? editState.grade! : profile.grade} role={profile.role} profileImageUrl={profile.profileImageUrl}/>
             </div>
             
             {isEditing ? (
@@ -103,13 +103,15 @@ export const ProfileScreen: React.FC = () => {
                         <input type="text" value={editState.name} onChange={(e) => setEditState({...editState, name: e.target.value})} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" />
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">School / University</label>
-                        <input type="text" value={editState.school} onChange={(e) => setEditState({...editState, school: e.target.value})} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" />
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Institution</label>
+                        <input type="text" value={editState.institution} onChange={(e) => setEditState({...editState, institution: e.target.value})} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" />
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Grade / Year</label>
-                        <input type="text" value={editState.grade} onChange={(e) => setEditState({...editState, grade: e.target.value})} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" />
-                    </div>
+                    {profile.role === 'student' && (
+                        <div>
+                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Grade / Year</label>
+                            <input type="text" value={editState.grade} onChange={(e) => setEditState({...editState, grade: e.target.value})} className="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" />
+                        </div>
+                    )}
                      <div>
                         <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Subjects</label>
                         <div className="flex mt-1">
